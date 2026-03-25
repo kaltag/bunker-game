@@ -10,9 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_25_075233) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_25_105601) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "bunker_features", force: :cascade do |t|
+    t.string "name"
+    t.string "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "cards", force: :cascade do |t|
     t.string "category"
@@ -45,7 +52,12 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_25_075233) do
     t.string "bunker_size"
     t.integer "bunker_capacity"
     t.integer "current_round", default: 1
+    t.string "bunker_items"
+    t.string "threat"
+    t.jsonb "bunker_features"
+    t.bigint "threat_id"
     t.index ["catastrophe_id"], name: "index_games_on_catastrophe_id"
+    t.index ["threat_id"], name: "index_games_on_threat_id"
   end
 
   create_table "player_cards", force: :cascade do |t|
@@ -75,7 +87,15 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_25_075233) do
     t.index ["game_id"], name: "index_players_on_game_id"
   end
 
+  create_table "threats", force: :cascade do |t|
+    t.string "name"
+    t.string "description"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   add_foreign_key "games", "catastrophes"
+  add_foreign_key "games", "threats"
   add_foreign_key "player_cards", "cards"
   add_foreign_key "player_cards", "players"
   add_foreign_key "players", "games"

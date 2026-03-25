@@ -12,12 +12,37 @@ class GameGenerator
 
     capacity = (player_count / 2).to_i
 
- # 2. Генерируем условия бункера
- @game.update!(
-    bunker_capacity: capacity, # Сохраняем вместимость
-    bunker_duration: [ 1, 2, 5, 10, 20, 50 ].sample,
+  # Взвешенная генерация срока в бункере (в процентах)
+  duration_roll = rand(1..100)
+  duration = case duration_roll
+  when 1..50 then 5
+  when 51..70 then 2
+  when 71..90 then 10
+  when 91..95 then 15
+  when 96..99 then 20
+  else 50
+  end
+
+  # Выбираем 2 случайные особенности бункера
+  selected_features = BunkerFeature.order("RANDOM()").limit(2)
+
+  # Формируем массив данных для хранения
+  features_data = selected_features.map { |f| { name: f.name, description: f.description } }
+
+
+   # угрозы (происшествия в середине игры)
+   threat = Threat.order("RANDOM()").first
+
+
+# 2. Генерируем условия бункера
+@game.update!(
+    bunker_capacity: capacity,
+    bunker_duration: duration,
     bunker_supplies: [ "Запасов еды хватит на весь срок", "Еды хватит только на половину срока", "Критический дефицит продовольствия" ].sample,
     bunker_size: [ "Просторный", "Тесный", "Средний" ].sample,
+    bunker_features: features_data,
+    threat: threat,
+    current_round: 1,
     status: "in_progress"
   )
 

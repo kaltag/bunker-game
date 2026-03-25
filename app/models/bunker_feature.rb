@@ -1,0 +1,2 @@
+class BunkerFeature < ApplicationRecord
+end

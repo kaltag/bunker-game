@@ -1,6 +1,8 @@
 class Game < ApplicationRecord
   has_many :players, dependent: :destroy
   belongs_to :catastrophe, optional: true # optional: true на случай, если мы будем создавать игру в два этапа
+  belongs_to :threat, optional: true
+
 
 
    # Статусы игры: подготовка, идет игра, завершена
@@ -45,7 +47,10 @@ def ai_report
 
   prompt += "=== МИР И УСЛОВИЯ ===\n"
   prompt += "Катастрофа: #{catastrophe&.name} (#{catastrophe&.description})\n"
-  prompt += "Бункер: рассчитан на #{bunker_capacity} чел, запасы на #{bunker_duration} лет. Особенности: #{bunker_size}, #{bunker_supplies}.\n\n"
+  prompt += "Бункер: рассчитан на #{bunker_capacity} чел, запасы на #{bunker_duration} лет. Особенности: #{bunker_size}, #{bunker_supplies}.\n"
+  prompt += "Особенности бункера:\n"
+  bunker_features.each { |f| prompt += "- #{f['name']}: #{f['description']}\n" }
+  prompt += "Происшествие во время выживания: #{threat}\n\n"
 
   format_player_data = ->(p, i, label) do
     res = "#{label} #{i+1} (#{p.gender}, #{p.age} лет, #{p.is_infertile ? 'Бесплоден' : 'Способен к размножению'}):\n"
@@ -95,7 +100,7 @@ def ai_report
   prompt += "\n=== ТВОЯ ЗАДАЧА ===\n"
   prompt += "\n=== ТВОЯ ЗАДАЧА КАК СЦЕНАРИСТА ===\n"
   prompt += "1. Опиши быт в бункере. Как вскрывшиеся ТАЙНЫ (которые не знали при входе) изменили отношение людей друг к другу?\n"
-  prompt += "2. Используй СИНЕРГИИ: опиши сцены спасения или совместной работы специалистов.\n"
+  prompt += "2. Опиши, как группа справилась с происшествием: '#{threat}'. Использовали ли они особенности бункера (например, #{bunker_features.map { |f| f['name'] }.join(' и ')}) в сюжете. и/или навыки (СИНЕРГИИ)?\n"
   prompt += "3. Включи в описание попытки группы выполнить их главный долг — размножение, и то, как болезни/тайны этому мешали или помогали.\n"
   prompt += "4. Опиши кульминацию: как их навыки, болезни и багаж помогли или помешали им выжить #{bunker_duration} лет в условиях '#{bunker_size}' и '#{bunker_supplies}'.\n"
   prompt += "5. Был ли у них шанс на возрождение человечества (учитывая пол и бесплодие)?\n"
