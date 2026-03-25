@@ -1,0 +1,66 @@
+<!-- app/views/players/_host_card.html.erb -->
+<div id="host_player_<%= player.id %>" class="bg-gray-800 rounded-xl border <%= player.eliminated ? 'border-red-800 opacity-60 grayscale' : 'border-gray-700 hover:border-gray-500' %> overflow-hidden flex flex-col shadow-lg transition relative">
+  
+  <!-- Печать ИЗГНАН (видна только если eliminated: true) -->
+  <% if player.eliminated %>
+    <div class="absolute inset-0 z-10 flex items-center justify-center pointer-events-none bg-red-900/20">
+      <span class="text-red-500 font-black text-4xl transform -rotate-12 uppercase border-4 border-red-500 px-4 py-2 bg-black/80 shadow-2xl">
+        ИЗГНАН
+      </span>
+    </div>
+  <% end %>
+
+  <div class="bg-gray-700 p-3 flex justify-between items-center relative z-20">
+    <h2 class="text-lg font-bold">Игрок <%= player.game.players.order(:id).index(player) + 1 %></h2>
+    <a href="<%= game_player_path(player.game, player) %>" target="_blank" data-turbo="false" class="text-[10px] bg-blue-600 hover:bg-blue-500 text-white py-1 px-2 rounded uppercase font-bold">
+      Ссылка
+    </a>
+  </div>
+
+  <div class="px-4 py-2 text-xs bg-gray-900 flex justify-between border-b border-gray-700">
+    <span class="<%= player.biology_revealed ? 'text-gray-300' : 'text-gray-600 italic' %>">
+      <%= player.biology_revealed ? "#{player.gender}, #{player.age} л." : "Биология скрыта" %>
+    </span>
+    <% if player.biology_revealed %>
+      <span class="<%= player.is_infertile ? 'text-red-500' : 'text-green-500' %> font-bold">
+        <%= player.is_infertile ? "Ø Бесплодие" : "♥ Способен" %>
+      </span>
+    <% end %>
+  </div>
+
+  <div class="p-4 flex-grow space-y-3">
+    <% player.ordered_player_cards.each do |pc| %>
+      <div class="text-xs transition-opacity duration-500 <%= pc.revealed ? 'opacity-100' : 'opacity-20' %>">
+        <span class="text-gray-500 uppercase font-black text-[9px]"><%= pc.card.category %></span>
+        <div class="flex flex-wrap items-center gap-1">
+          <span class="font-bold text-sm <%= pc.revealed ? 'text-blue-300' : 'text-gray-500' %>">
+            <%= pc.revealed ? pc.card.name : "[СКРЫТО]" %>
+          </span>
+          
+          <% if pc.revealed %>
+            <% if pc.card.category == 'health' && pc.severity %>
+              <span class="text-red-500 font-bold">[<%= pc.severity %>%]</span>
+            <% end %>
+            <% if pc.card.category == 'profession' && player.show_prof_exp? %>
+              <span class="text-yellow-500 italic">(<%= player.profession_experience %> л.)</span>
+            <% end %>
+            <% if pc.card.category == 'hobby' && player.show_hobby_exp? %>
+              <span class="text-green-500 italic">(<%= player.hobby_experience %> л.)</span>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- Кнопка изгнания для ведущего (внизу карточки) -->
+  <div class="p-3 bg-gray-900 border-t border-gray-700 mt-auto relative z-20">
+    <% if !player.eliminated %>
+      <%= button_to "Изгнать игрока", eliminate_game_player_path(player.game, player), method: :post, 
+          data: { turbo_confirm: "Вы уверены, что группа проголосовала за изгнание этого игрока?" }, 
+          class: "w-full py-2 bg-red-900 hover:bg-red-700 text-red-100 text-[10px] font-black uppercase tracking-widest rounded transition" %>
+    <% else %>
+      <div class="text-center text-red-500 text-xs font-bold uppercase tracking-widest py-1">Вне бункера</div>
+    <% end %>
+  </div>
+</div>

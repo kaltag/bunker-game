@@ -1,0 +1,88 @@
+<div class="min-h-screen bg-gray-900 text-white p-6 font-sans">
+  <div class="max-w-7xl mx-auto">
+    
+    <!-- Шапка игры -->
+    <div class="bg-gray-800 rounded-xl p-6 mb-8 border border-gray-700">
+      <div class="flex flex-col md:flex-row justify-between items-start gap-6">
+        <div class="max-w-3xl">
+          <h1 class="text-3xl font-bold text-red-500 mb-2 uppercase tracking-tight">
+            Катастрофа: <%= @game.catastrophe&.name %>
+          </h1>
+          <p class="text-gray-300 italic mb-4 leading-relaxed">
+            "<%= @game.catastrophe&.description %>"
+          </p>
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-gray-900 p-4 rounded-lg border border-gray-700">
+            <div>
+              <span class="text-gray-500 block uppercase text-xs font-bold mb-1">Срок:</span> 
+              <span class="text-lg font-bold text-yellow-500"><%= @game.bunker_duration %> лет</span>
+            </div>
+            <div>
+              <span class="text-gray-500 block uppercase text-xs font-bold mb-1">Вместимость:</span> 
+              <span class="text-lg font-bold text-red-500"><%= @game.bunker_capacity %> из <%= @game.players.count %></span>
+            </div>
+            <div>
+              <span class="text-gray-500 block uppercase text-xs font-bold mb-1">Ресурсы:</span> 
+              <span class="font-semibold text-gray-200"><%= @game.bunker_supplies %></span>
+            </div>
+            <div>
+              <span class="text-gray-500 block uppercase text-xs font-bold mb-1">Размер:</span> 
+              <span class="font-semibold text-gray-200"><%= @game.bunker_size %></span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex flex-col items-end gap-3">
+          <div class="bg-gray-700 px-4 py-2 rounded-lg border border-gray-600 shadow-inner text-right w-full">
+            <p class="text-gray-400 text-[10px] uppercase font-bold">Код партии</p>
+            <p class="text-xl font-mono font-bold text-white tracking-widest"><%= @game.code %></p>
+          </div>
+          
+          <div class="text-right bg-gray-900 p-3 rounded-lg border border-gray-700 w-full">
+            <p class="text-gray-400 text-sm mb-1 uppercase font-bold">Раунд: <span class="text-white text-xl"><%= @game.current_round %> / 5</span></p>
+            
+            <% if @game.current_round <= 5 %>
+              <% if @game.total_remaining_eliminations > 0 %>
+                <p class="text-red-400 text-sm font-bold mt-2">
+                  Изгнать в этом раунде: <span class="text-white text-lg"><%= @game.eliminations_this_round %></span>
+                </p>
+                <p class="text-gray-500 text-[10px] uppercase font-bold mb-3">
+                  Всего лишних до финала: <%= @game.total_remaining_eliminations %>
+                </p>
+              <% else %>
+                <p class="text-green-500 text-sm font-black mb-3 mt-2 uppercase">Состав идеален!</p>
+              <% end %>
+
+              <%= button_to "СЛЕДУЮЩИЙ РАУНД", reveal_next_round_game_path(@game), method: :post, 
+                  class: "w-full bg-red-600 hover:bg-red-500 text-white font-black py-2 px-4 rounded shadow-lg transition transform hover:scale-105" %>
+
+            <% else %>
+              <!-- ФИНАЛ: Раунды закончились -->
+              <div class="text-green-500 font-black uppercase text-2xl mt-2 animate-pulse mb-2">ДВЕРИ ЗАКРЫТЫ</div>
+              
+              <% if @game.total_remaining_eliminations > 0 %>
+                <p class="text-red-400 text-xs mb-3 font-bold">ОШИБКА: В бункере остались лишние люди! Изгоните еще <%= @game.total_remaining_eliminations %></p>
+              <% else %>
+                <p class="text-gray-300 text-xs mb-3">Группа сформирована. Тайны заперты внутри.</p>
+                <%= link_to "СГЕНЕРИРОВАТЬ ИСТОРИЮ (ИИ)", report_game_path(@game), 
+                    class: "block w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-4 rounded shadow-lg transition transform hover:scale-105 uppercase tracking-widest" %>
+              <% end %>
+
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <%= turbo_stream_from @game %>
+
+    <!-- Список игроков -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+      <% @players.each do |player| %>
+        <!-- Вызываем наш новый файл-шаблон для каждого игрока -->
+        <%= render "players/host_card", player: player %>
+      <% end %>
+    </div>
+
+  </div>
+</div>

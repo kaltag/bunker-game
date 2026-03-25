@@ -1,0 +1,6 @@
+<!-- app/views/players/show.html.erb -->
+<!-- Подписываем браузер Игрока на обновления именно ЕГО экрана -->
+<%= turbo_stream_from @player %>
+
+<!-- Рендерим шаблон -->
+<%= render "players/player_screen", player: @player, game: @game %>
