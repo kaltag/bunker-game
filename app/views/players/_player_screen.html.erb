@@ -21,39 +21,44 @@
       </div>
     <% end %>
 
-    <!-- КАРТА ОСОБЫХ УСЛОВИЙ (ДЕЙСТВИЕ) -->
-  <% action_card_link = player.player_action_cards.first %>
-  <% if action_card_link %>
-    <% action_card = action_card_link.action_card %>
-    <div class="bg-purple-900/40 rounded-lg p-5 mb-4 border border-purple-700 shadow-lg relative overflow-hidden">
-      <div class="flex justify-between items-start mb-3 border-b border-purple-700 pb-2">
-        <h2 class="text-lg font-black text-purple-300 uppercase tracking-widest">Особое Условие</h2>
-        <% if action_card_link.used %>
-          <span class="text-[10px] bg-gray-600 text-white px-2 py-1 rounded font-bold tracking-widest">ИСПОЛЬЗОВАНО</span>
-        <% end %>
+    <!-- СООБЩЕНИЕ О РЕЗУЛЬТАТЕ РЕЙДА -->
+    <% if player.raid_outcome.present? && player.raid_status != 'raiding' %>
+      <div class="mb-6 p-4 rounded-lg border-2 shadow-2xl <%= player.raid_status == 'dead' ? 'bg-red-900/80 border-red-500' : 'bg-indigo-900/80 border-indigo-500' %> animate-bounce">
+        <h3 class="text-xs font-black uppercase tracking-tighter mb-1 opacity-70 text-white">Результат вылазки:</h3>
+        <p class="text-lg font-bold leading-tight text-white"><%= player.raid_outcome %></p>
+        <p class="text-[10px] mt-2 text-white/50 italic text-right">Это сообщение исчезнет в следующем раунде</p>
       </div>
-      
-      <p class="text-xl font-bold text-purple-100 mb-2 uppercase"><%= action_card.name %></p>
-      <p class="text-sm text-purple-300 mb-4 leading-tight"><%= action_card.description %></p>
+    <% end %>
 
-      <% if !action_card_link.used && !player.eliminated %>
-        <%= form_with url: use_game_player_player_action_card_path(game, player, action_card_link), method: :post, class: "space-y-3" do |f| %>
-          
-          <!-- Если карта требует выбрать игрока, показываем выпадающий список -->
-          <% if action_card.requires_target %>
-            <div class="bg-purple-950 p-3 rounded border border-purple-800">
-              <label class="block text-xs text-purple-400 mb-2 uppercase font-bold tracking-widest">Выберите цель:</label>
-              <%= f.select :target_id, 
-                  game.players.where(eliminated: false).map { |p|["Игрок #{game.players.order(:id).index(p) + 1} #{p == player ? '(Вы)' : ''}", p.id] }, 
-                  {}, class: "w-full bg-gray-900 border-purple-700 text-white rounded p-2 text-sm focus:ring-purple-500 focus:border-purple-500" %>
+    <!-- КАРТЫ ОСОБЫХ УСЛОВИЙ (ИХ МОЖЕТ БЫТЬ НЕСКОЛЬКО) -->
+      <% if player.player_action_cards.any? %>
+        <div class="space-y-4 mb-6">
+          <h2 class="text-xs font-black text-purple-400 uppercase tracking-[0.2em] ml-1">Особые условия</h2>
+          <% player.player_action_cards.each do |action_link| %>
+            <% action_card = action_link.action_card %>
+            <div class="bg-purple-900/30 rounded-lg p-4 border border-purple-700/50 shadow-lg">
+              <div class="flex justify-between items-start mb-2">
+                <p class="text-sm font-bold text-purple-100 uppercase"><%= action_card.name %></p>
+                <% if action_link.used %>
+                  <span class="text-[8px] bg-gray-600 text-white px-2 py-1 rounded font-bold">ИСПОЛЬЗОВАНО</span>
+                <% end %>
+              </div>
+              <p class="text-xs text-purple-300 mb-3"><%= action_card.description %></p>
+
+              <% if !action_link.used && !player.eliminated %>
+                <%= form_with url: use_game_player_player_action_card_path(game, player, action_link), method: :post do |f| %>
+                  <% if action_card.requires_target %>
+                    <%= f.select :target_id, 
+                        game.players.where(eliminated: false).map { |p| ["Игрок #{game.players.order(:id).index(p) + 1}", p.id] }, 
+                        {}, class: "w-full bg-black/40 border-purple-800 text-white rounded p-2 text-[10px] mb-2" %>
+                  <% end %>
+                  <%= f.submit "ИСПОЛЬЗОВАТЬ", class: "w-full py-2 bg-purple-600 text-white rounded font-bold text-[10px] tracking-widest" %>
+                <% end %>
+              <% end %>
             </div>
           <% end %>
-          
-          <%= f.submit "РАЗЫГРАТЬ КАРТУ", class: "w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-black tracking-widest uppercase shadow-lg cursor-pointer transition transform hover:scale-105", data: { turbo_confirm: "Вы уверены? Это действие необратимо и сразу вступит в силу!" } %>
-        <% end %>
+        </div>
       <% end %>
-    </div>
-  <% end %>
 
     <!-- Биология -->
     <div class="bg-gray-800 rounded-lg p-5 mb-4 border border-gray-700">

@@ -6,6 +6,7 @@ Rails.application.routes.draw do
     # Добавим кнопку для ведущего "Вскрыть следующую категорию"
     member do
       post :reveal_next_round
+      post :start_raid
       get :report
     end
 

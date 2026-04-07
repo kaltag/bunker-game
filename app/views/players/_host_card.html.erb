@@ -55,12 +55,17 @@
 
   <!-- Кнопка изгнания для ведущего (внизу карточки) -->
   <div class="p-3 bg-gray-900 border-t border-gray-700 mt-auto relative z-20">
-    <% if !player.eliminated %>
-      <%= button_to "Изгнать игрока", eliminate_game_player_path(player.game, player), method: :post, 
-          data: { turbo_confirm: "Вы уверены, что группа проголосовала за изгнание этого игрока?" }, 
-          class: "w-full py-2 bg-red-900 hover:bg-red-700 text-red-100 text-[10px] font-black uppercase tracking-widest rounded transition" %>
+    <% if player.eliminated %>
+      <div class="text-center text-red-500 text-xs font-bold uppercase tracking-widest py-1 italic">Вне бункера</div>
+    <% elsif player.raid_status == 'raiding' %>
+      <!-- Блокируем изгнание, если игрок в рейде -->
+      <div class="bg-indigo-600/20 border border-indigo-500 text-indigo-400 text-[10px] text-center py-2 rounded font-black uppercase tracking-tighter animate-pulse">
+        В ВЫЛАЗКЕ (Иммунитет)
+      </div>
     <% else %>
-      <div class="text-center text-red-500 text-xs font-bold uppercase tracking-widest py-1">Вне бункера</div>
+      <%= button_to "Изгнать игрока", eliminate_game_player_path(player.game, player), method: :post, 
+          data: { turbo_confirm: "Вы уверены? Игрок покинет игру." }, 
+          class: "w-full py-2 bg-red-900 hover:bg-red-700 text-red-100 text-[10px] font-black uppercase tracking-widest rounded transition" %>
     <% end %>
   </div>
 </div>

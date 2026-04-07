@@ -41,6 +41,14 @@ class Player < ApplicationRecord
     cards.find_by(category: "fact")
   end
 
+  def all_luggage
+    cards.where(category: "luggage")
+  end
+
+  def all_action_cards
+    action_cards # через связь has_many :action_cards, through: :player_action_cards
+  end
+
   def ordered_player_cards
     # Определяем желаемый порядок категорий
     category_order = [ "profession", "health", "phobia", "hobby", "luggage", "fact" ]

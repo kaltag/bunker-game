@@ -433,3 +433,37 @@ action_cards =[
 ]
 
 action_cards.each { |ac| ActionCard.create!(ac) }
+
+
+puts "Создание рейдов..."
+Raid.destroy_all
+
+raids = [
+  { name: "Заброшенная аптека", description: "Поиск медикаментов в руинах города.", required_tags: "medical, stealth", dangerous_tags: "disease" },
+  { name: "Военный склад", description: "Попытка раздобыть оружие и патроны.", required_tags: "security, weapons", dangerous_tags: "danger" },
+  { name: "Библиотека", description: "Поиск знаний и карт местности.", required_tags: "intelligence, history", dangerous_tags: "panic" },
+  { name: "Грозовой перевал", description: "Установка радиовышки для связи.", required_tags: "technical, physical", dangerous_tags: "danger" },
+  { name: "Затопленный супермаркет", description: "Поиск консервов в подвальных этажах.", required_tags: "physical, survival", dangerous_tags: "water" },
+  { name: "Покинутая лаборатория", description: "Сбор химреактивов для фильтров.", required_tags: "science, chemical", dangerous_tags: "radiation" },
+  { name: "Гнездо крыс", description: "Зачистка окрестностей от вредителей.", required_tags: "hunting, weapon", dangerous_tags: "infection" },
+  { name: "Огород на крыше", description: "Сбор семян и удобрений из теплиц.", required_tags: "agriculture, farming", dangerous_tags: "open_space" },
+  { name: "Полицейский участок", description: "Поиск наручников и бронежилетов.", required_tags: "security, combat", dangerous_tags: "criminal" },
+  { name: "Разрушенный банк", description: "Поиск золотых слитков или ключей от хранилищ.", required_tags: "stealth, mechanical", dangerous_tags: "dark" },
+  { name: "Автомастерская", description: "Поиск запчастей для генератора.", required_tags: "repair, technical", dangerous_tags: "heavy_objects" },
+  { name: "Старый приют", description: "Поиск детского питания и одежды.", required_tags: "social, mental_health", dangerous_tags: "panic" },
+  { name: "Рыболовная хижина", description: "Добыча рыбы на радиоактивном озере.", required_tags: "food, survival", dangerous_tags: "water" },
+  { name: "Завод электроники", description: "Поиск плат и микросхем.", required_tags: "software, robotic", dangerous_tags: "tech" },
+  { name: "Офис президента", description: "Поиск секретных кодов доступа.", required_tags: "authority, logic", dangerous_tags: "security" },
+  { name: "Охотничьи угодья", description: "Выслеживание крупной дичи.", required_tags: "tracking, weapon", dangerous_tags: "dogs" },
+  { name: "Чердак художника", description: "Поиск материалов для творчества.", required_tags: "art, intelligence", dangerous_tags: "height" },
+  { name: "Подземные тоннели", description: "Разведка нового пути выхода.", required_tags: "exploration, dark", dangerous_tags: "confined" },
+  { name: "Сгоревший госпиталь", description: "Поиск хирургических инструментов.", required_tags: "surgery, medical", dangerous_tags: "blood" },
+  { name: "Винный погреб", description: "Сбор спиртного для медицинских нужд.", required_tags: "alcohol, food", dangerous_tags: "dark" },
+  { name: "Святилище секты", description: "Переговоры с местными безумцами.", required_tags: "social, language", dangerous_tags: "cult" },
+  { name: "Мастерская плотника", description: "Сбор древесины и инструментов.", required_tags: "building, physical", dangerous_tags: "injury" },
+  { name: "Музей авиации", description: "Поиск легкого транспорта.", required_tags: "transport, intelligence", dangerous_tags: "height" },
+  { name: "Радиоцентр", description: "Попытка перехватить сигнал извне.", required_tags: "communication, technical", dangerous_tags: "tech" },
+  { name: "Брошенный караван", description: "Обыск вещей других беженцев.", required_tags: "stealth, survival", dangerous_tags: "danger" }
+]
+
+raids.each { |r| Raid.create!(r) }

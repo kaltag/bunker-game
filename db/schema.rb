@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_07_072049) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_07_135649) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -66,6 +66,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_07_072049) do
     t.string "threat"
     t.jsonb "bunker_features"
     t.bigint "threat_id"
+    t.integer "active_raid_id"
     t.index ["catastrophe_id"], name: "index_games_on_catastrophe_id"
     t.index ["threat_id"], name: "index_games_on_threat_id"
   end
@@ -104,7 +105,18 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_07_072049) do
     t.integer "hobby_experience"
     t.boolean "biology_revealed", default: false
     t.boolean "eliminated", default: false
+    t.string "raid_status", default: "at_home"
+    t.text "raid_outcome"
     t.index ["game_id"], name: "index_players_on_game_id"
+  end
+
+  create_table "raids", force: :cascade do |t|
+    t.string "name"
+    t.string "description"
+    t.string "required_tags"
+    t.string "dangerous_tags"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "threats", force: :cascade do |t|
