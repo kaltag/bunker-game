@@ -385,3 +385,49 @@ features = [
 ]
 
 features.each { |f| BunkerFeature.create!(f) }
+
+puts "Создание Карт Особых Условий (Действий)..."
+ActionCard.destroy_all
+
+action_cards =[
+  # ==========================================
+  # АВТОМАТИЗИРОВАННЫЕ КАРТЫ (МЕНЯЮТ БАЗУ ДАННЫХ)
+  # ==========================================
+
+  # Глобальные перемешивания (без цели)
+  { name: 'Давайте начистоту (Багаж)', card_type: 'automated', code: 'shuffle_luggage', requires_target: false, description: 'Собери все ОТКРЫТЫЕ карты багажа у неизгнанных игроков, перемешай и перераздай.' },
+  { name: 'Давайте начистоту (Здоровье)', card_type: 'automated', code: 'shuffle_health', requires_target: false, description: 'Собери все ОТКРЫТЫЕ карты здоровья у неизгнанных игроков, перемешай и перераздай.' },
+  { name: 'Давайте начистоту (Хобби)', card_type: 'automated', code: 'shuffle_hobbies', requires_target: false, description: 'Собери все ОТКРЫТЫЕ карты хобби у неизгнанных игроков, перемешай и перераздай.' },
+  { name: 'Давайте начистоту (Факты)', card_type: 'automated', code: 'shuffle_facts', requires_target: false, description: 'Собери все ОТКРЫТЫЕ карты фактов у неизгнанных игроков, перемешай и перераздай.' },
+  { name: 'Давайте начистоту (Биология)', card_type: 'automated', code: 'shuffle_biology', requires_target: false, description: 'Собери всю ОТКРЫТУЮ биологию (пол/возраст/репродукцию) у неизгнанных игроков и перераздай.' },
+  { name: 'Профориентация', card_type: 'automated', code: 'reroll_all_professions', requires_target: false, description: 'Всем неизгнанным игрокам без исключения меняются профессии на новые случайные из колоды.' },
+
+  # Направленные на другого игрока (требуют выбора цели)
+  { name: 'Обмен карт (Багаж)', card_type: 'automated', code: 'swap_luggage', requires_target: true, description: 'Поменяйся открытыми картами багажа с выбранным игроком.' },
+  { name: 'Обмен карт (Здоровье)', card_type: 'automated', code: 'swap_health', requires_target: true, description: 'Поменяйся открытыми картами здоровья с выбранным игроком.' },
+  { name: 'Обмен карт (Хобби)', card_type: 'automated', code: 'swap_hobbies', requires_target: true, description: 'Поменяйся открытыми картами хобби с выбранным игроком.' },
+  { name: 'Обмен карт (Факты)', card_type: 'automated', code: 'swap_facts', requires_target: true, description: 'Поменяйся открытыми картами фактов с выбранным игроком.' },
+
+  { name: 'Просроченные таблетки', card_type: 'automated', code: 'reroll_health', requires_target: true, description: 'Замени открытую карту Здоровья выбранного игрока на случайную из колоды.' },
+  { name: 'Фейковый диплом', card_type: 'automated', code: 'reroll_profession', requires_target: true, description: 'Смени открытую карту Профессии выбранного игрока на случайную из колоды.' },
+
+  { name: 'Хорошие таблетки', card_type: 'automated', code: 'heal_health', requires_target: true, description: 'Делает выбранного игрока "Идеально здоровым" (заменяет его карту здоровья).' },
+  { name: 'Сеанс психотерапии', card_type: 'automated', code: 'heal_phobia', requires_target: true, description: 'Полностью избавляет выбранного игрока от фобии ("Нет фобий").' },
+
+
+  # ==========================================
+  # СОЦИАЛЬНЫЕ КАРТЫ (ОТЫГРЫВАЮТСЯ ГОЛОСОМ)
+  # ==========================================
+  { name: 'Отмена действия', card_type: 'social', code: 'cancel_action', requires_target: false, description: 'Отменяет действие карточки "Особых условий", которую только что сыграл другой игрок.' },
+  { name: 'Будь другом', card_type: 'social', code: 'immunity_vote', requires_target: true, description: 'Выбранный игрок до конца игры не имеет права голосовать против тебя.' },
+  { name: 'Громкий голос', card_type: 'social', code: 'double_vote', requires_target: false, description: 'Твой голос считается за два в текущем голосовании.' },
+  { name: 'План Б', card_type: 'social', code: 'revote', requires_target: false, description: 'Все должны переголосовать заново, выбирая другого кандидата.' },
+  { name: 'Молчание', card_type: 'social', code: 'silence', requires_target: true, description: 'Выбранный игрок больше ничего не говорит в этом раунде. Общается только жестами.' },
+  { name: 'Прямой вопрос', card_type: 'social', code: 'force_reveal', requires_target: false, description: 'Назови тип карт (например, Фобии). До конца раунда все обязаны открывать только этот тип.' },
+  { name: 'Дискредитация', card_type: 'social', code: 'nullify_vote', requires_target: true, description: 'Голос выбранного игрока не учитывается в этом голосовании.' },
+  { name: 'Защити соседа', card_type: 'social', code: 'protect_neighbor', requires_target: false, description: 'Храните в тайне! Если изгнан игрок слева от вас, в следующий раз вы обязаны голосовать против себя.' },
+  { name: 'Компромат', card_type: 'social', code: 'double_vote_against', requires_target: true, description: 'Голоса против выбранного игрока удваиваются, но сам ты не голосуешь.' },
+  { name: 'Иммунитет', card_type: 'social', code: 'round_immunity', requires_target: true, description: 'Против выбранного игрока (можно выбрать себя) нельзя голосовать в этом раунде.' }
+]
+
+action_cards.each { |ac| ActionCard.create!(ac) }

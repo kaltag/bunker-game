@@ -1,0 +1,2 @@
+class ActionCard < ApplicationRecord
+end

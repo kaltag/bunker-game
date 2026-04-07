@@ -12,39 +12,39 @@ class GameGenerator
 
     capacity = (player_count / 2).to_i
 
-  # Взвешенная генерация срока в бункере (в процентах)
-  duration_roll = rand(1..100)
-  duration = case duration_roll
-  when 1..50 then 5
-  when 51..70 then 2
-  when 71..90 then 10
-  when 91..95 then 15
-  when 96..99 then 20
-  else 50
-  end
+    # Взвешенная генерация срока в бункере (в процентах)
+    duration_roll = rand(1..100)
+    duration = case duration_roll
+    when 1..50 then 5
+    when 51..70 then 2
+    when 71..90 then 10
+    when 91..95 then 15
+    when 96..99 then 20
+    else 50
+    end
 
-  # Выбираем 2 случайные особенности бункера
-  selected_features = BunkerFeature.order("RANDOM()").limit(2)
+    # Выбираем 2 случайные особенности бункера
+    selected_features = BunkerFeature.order("RANDOM()").limit(2)
 
-  # Формируем массив данных для хранения
-  features_data = selected_features.map { |f| { name: f.name, description: f.description } }
-
-
-   # угрозы (происшествия в середине игры)
-   threat = Threat.order("RANDOM()").first
+    # Формируем массив данных для хранения
+    features_data = selected_features.map { |f| { name: f.name, description: f.description } }
 
 
-# 2. Генерируем условия бункера
-@game.update!(
-    bunker_capacity: capacity,
-    bunker_duration: duration,
-    bunker_supplies: [ "Запасов еды хватит на весь срок", "Еды хватит только на половину срока", "Критический дефицит продовольствия" ].sample,
-    bunker_size: [ "Просторный", "Тесный", "Средний" ].sample,
-    bunker_features: features_data,
-    threat: threat,
-    current_round: 1,
-    status: "in_progress"
-  )
+    # угрозы (происшествия в середине игры)
+    threat = Threat.order("RANDOM()").first
+
+
+    # 2. Генерируем условия бункера
+    @game.update!(
+        bunker_capacity: capacity,
+        bunker_duration: duration,
+        bunker_supplies: [ "Запасов еды хватит на весь срок", "Еды хватит только на половину срока", "Критический дефицит продовольствия" ].sample,
+        bunker_size: [ "Просторный", "Тесный", "Средний" ].sample,
+        bunker_features: features_data,
+        threat: threat,
+        current_round: 1,
+        status: "in_progress"
+    )
 
     # Создаем игроков с учетом демографической квоты (мин. 2М и 2Ж)
     players = create_players(player_count)
@@ -54,6 +54,9 @@ class GameGenerator
 
     # Этап 2: Выдаем гарантированные "пустые" карты (Здоровье и Фобии)
     # assign_guaranteed_traits(players)
+
+    # Этап 2: Выдаем карты особых условий/действий всем игрокам
+    assign_action_cards(players)
 
     # Этап 3: Создаем динамические синергии (случайный набор на партию)
     inject_dynamic_synergies(players)
@@ -230,5 +233,13 @@ class GameGenerator
 
     PlayerCard.create!(player: player, card: card, severity: severity, revealed: false)
     player.reload # Обновляем объект в памяти
+  end
+
+  # Выдаем каждому игроку по 1 случайной карте действий
+  def assign_action_cards(players)
+    action_cards = ActionCard.order("RANDOM()").limit(players.count)
+    players.zip(action_cards).each do |player, ac|
+      PlayerActionCard.create!(player: player, action_card: ac) if ac
+    end
   end
 end

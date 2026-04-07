@@ -10,9 +10,19 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_03_25_105601) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_07_072049) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "action_cards", force: :cascade do |t|
+    t.string "name"
+    t.string "description"
+    t.string "card_type"
+    t.string "code"
+    t.boolean "requires_target"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "bunker_features", force: :cascade do |t|
     t.string "name"
@@ -60,6 +70,16 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_25_105601) do
     t.index ["threat_id"], name: "index_games_on_threat_id"
   end
 
+  create_table "player_action_cards", force: :cascade do |t|
+    t.bigint "player_id", null: false
+    t.bigint "action_card_id", null: false
+    t.boolean "used", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["action_card_id"], name: "index_player_action_cards_on_action_card_id"
+    t.index ["player_id"], name: "index_player_action_cards_on_player_id"
+  end
+
   create_table "player_cards", force: :cascade do |t|
     t.bigint "player_id", null: false
     t.bigint "card_id", null: false
@@ -96,6 +116,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_03_25_105601) do
 
   add_foreign_key "games", "catastrophes"
   add_foreign_key "games", "threats"
+  add_foreign_key "player_action_cards", "action_cards"
+  add_foreign_key "player_action_cards", "players"
   add_foreign_key "player_cards", "cards"
   add_foreign_key "player_cards", "players"
   add_foreign_key "players", "games"

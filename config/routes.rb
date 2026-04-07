@@ -19,6 +19,11 @@ Rails.application.routes.draw do
           post :reveal       # Кнопка вскрытия любой карточки
         end
       end
+      resources :player_action_cards, only: [] do
+        member do
+          post :use
+        end
+      end
     end
   end
 end
