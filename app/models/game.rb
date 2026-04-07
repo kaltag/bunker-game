@@ -50,7 +50,7 @@ def ai_report
   prompt += "Бункер: рассчитан на #{bunker_capacity} чел, запасы на #{bunker_duration} лет. Особенности: #{bunker_size}, #{bunker_supplies}.\n"
   prompt += "Особенности бункера:\n"
   bunker_features.each { |f| prompt += "- #{f['name']}: #{f['description']}\n" }
-  prompt += "Происшествие во время выживания: #{threat}\n\n"
+  prompt += "Происшествие во время выживания: #{threat&.name}. Описание: #{threat&.description}\n\n"
 
   format_player_data = ->(p, i, label) do
     res = "#{label} #{i+1} (#{p.gender}, #{p.age} лет, #{p.is_infertile ? 'Бесплоден' : 'Способен к размножению'}):\n"
@@ -78,21 +78,24 @@ def ai_report
 
   # СИНЕРГИИ ВНУТРИ БУНКЕРА
   prompt += "=== АНАЛИЗ СИНЕРГИЙ ВНУТРИ ГРУППЫ ===\n"
+  prompt += "=== ЖЕСТКИЕ ПРАВИЛА ВЗАИМОДЕЙСТВИЯ ===\n"
+  prompt += "В этом мире навыки специалистов ГАРАНТИРУЮТ результат. Личные черты характера не могут помешать выполнению профессионального долга.\n"
   survivors.each do |p1|
     survivors.each do |p2|
       next if p1 == p2
-     if p1.profession&.tags&.include?("medical") && p2.health&.is_curable && p2.health&.tags&.match?(/physical|disease|injury/)
-        prompt += "- Медицина: #{p1.profession.name} может спасти жизнь Игроку с болезнью '#{p2.health.name}'.\n"
-     end
-
-      # Проверяем психологию (психолог + фобия)
-      if p1.profession&.tags&.include?("mental_health") && p2.phobia&.tags&.include?("panic")
-        prompt += "- Психология: Психолог может купировать фобию '#{p2.phobia.name}' у соседа.\n"
+      # Психология: ПОЛНОЕ ИЗЛЕЧЕНИЕ
+      if p1.profession&.tags.to_s.include?("mental_health") && p2.phobia&.tags.to_s.include?("panic")
+        prompt += "- ПРАВИЛО: Психолог (#{p1.profession.name}) ПОЛНОСТЬЮ И УСПЕШНО излечивает фобию '#{p2.phobia.name}' у Игрока #{survivors.index(p2)+1}. Все психологические барьеры для общения и размножения СНЯТЫ.\n"
       end
 
-      # Проверяем технику (инженер + багаж)
-      if p1.profession&.tags&.include?("technical") && p2.luggage&.tags&.include?("repair")
-        prompt += "- Инженерия: #{p1.profession.name} эффективно использует предмет '#{p2.luggage.name}'.\n"
+      # Медицина: ПОЛНОЕ ИЗЛЕЧЕНИЕ
+      if p1.profession&.tags.to_s.include?("medical") && p2.health&.is_curable && p2.health&.tags.to_s.match?(/physical|disease|injury/)
+        prompt += "- ПРАВИЛО: Врач (#{p1.profession.name}) ГАРАНТИРОВАННО вылечивает болезнь '#{p2.health.name}' у Игрока #{survivors.index(p2)+1}. Игрок становится полностью трудоспособен.\n"
+      end
+
+      # Техника: БЕЗУСЛОВНЫЙ УСПЕХ
+      if p1.profession&.tags.to_s.include?("technical") && p2.luggage&.tags.to_s.include?("repair")
+        prompt += "- ПРАВИЛО: Благодаря Инженеру (#{p1.profession.name}) и предмету '#{p2.luggage.name}', любые технические поломки в бункере устраняются МГНОВЕННО.\n"
       end
     end
   end
@@ -100,7 +103,7 @@ def ai_report
   prompt += "\n=== ТВОЯ ЗАДАЧА ===\n"
   prompt += "\n=== ТВОЯ ЗАДАЧА КАК СЦЕНАРИСТА ===\n"
   prompt += "1. Опиши быт в бункере. Как вскрывшиеся ТАЙНЫ (которые не знали при входе) изменили отношение людей друг к другу?\n"
-  prompt += "2. Опиши, как группа справилась с происшествием: '#{threat}'. Использовали ли они особенности бункера (например, #{bunker_features.map { |f| f['name'] }.join(' и ')}) в сюжете. и/или навыки (СИНЕРГИИ)?\n"
+  prompt += "2. Опиши, как группа справилась с происшествием: '#{threat&.description}'. Использовали ли они особенности бункера (например, #{bunker_features.map { |f| f['name'] }.join(' и ')}) в сюжете. и/или навыки (СИНЕРГИИ)?\n"
   prompt += "3. Включи в описание попытки группы выполнить их главный долг — размножение, и то, как болезни/тайны этому мешали или помогали.\n"
   prompt += "4. Опиши кульминацию: как их навыки, болезни и багаж помогли или помешали им выжить #{bunker_duration} лет в условиях '#{bunker_size}' и '#{bunker_supplies}'.\n"
   prompt += "5. Был ли у них шанс на возрождение человечества (учитывая пол и бесплодие)?\n"

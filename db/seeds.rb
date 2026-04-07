@@ -164,6 +164,8 @@ puts "Создание фобий (полный список 30+)..."
 phobias = [
   # --- Tier S (Кремень) ---
   { name: 'Нет фобий', tier: 'S', tags: 'brave, mental', weight: 1, description: 'Психика непоколебима. Способен сохранять рассудок в любой ситуации.', is_curable: true },
+  { name: 'Крепкая психика', tier: 'S', tags: 'brave, mental', weight: 1, description: 'Психика непоколебима. Способен сохранять рассудок в любой ситуации.', is_curable: true },
+  { name: 'Стальные нервы', tier: 'S', tags: 'brave, mental', weight: 1, description: 'Психика непоколебима. Способен сохранять рассудок в любой ситуации.', is_curable: true },
 
   # --- Tier A (Легкие или специфические страхи) ---
   { name: 'Арахнофобия', tier: 'A', tags: 'panic, mental', weight: -1, description: 'Боязнь пауков. Будет кричать при виде любого насекомого.', is_curable: true },

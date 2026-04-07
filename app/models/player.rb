@@ -29,6 +29,18 @@ class Player < ApplicationRecord
     cards.find_by(category: "luggage")
   end
 
+  def phobia
+    cards.find_by(category: "phobia")
+  end
+
+  def hobby
+    cards.find_by(category: "hobby")
+  end
+
+  def fact
+    cards.find_by(category: "fact")
+  end
+
   def ordered_player_cards
     # Определяем желаемый порядок категорий
     category_order = [ "profession", "health", "phobia", "hobby", "luggage", "fact" ]

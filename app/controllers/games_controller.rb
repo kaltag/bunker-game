@@ -28,47 +28,46 @@ class GamesController < ApplicationController
     @players = @game.players.includes(player_cards: :card)
   end
 
-def reveal_next_round
-  @game = Game.find(params[:id])
+  def reveal_next_round
+    @game = Game.find(params[:id])
 
-  # Изменение: теперь мы разрешаем переход с 5 на 6 раунд (Финал)
-  if @game.current_round <= 5
-    @game.increment!(:current_round)
+    # Изменение: теперь мы разрешаем переход с 5 на 6 раунд (Финал)
+    if @game.current_round <= 5
+      @game.increment!(:current_round)
 
-    # Надежный способ обновить экраны всех игроков в реальном времени
-    @game.players.each do |player|
-      Turbo::StreamsChannel.broadcast_replace_to(
-        player,
-        target: "player_#{player.id}_screen",
-        partial: "players/player_screen",
-        locals: { player: player, game: @game }
-      )
+      # Надежный способ обновить экраны всех игроков в реальном времени
+      @game.players.each do |player|
+        Turbo::StreamsChannel.broadcast_replace_to(
+          player,
+          target: "player_#{player.id}_screen",
+          partial: "players/player_screen",
+          locals: { player: player, game: @game }
+        )
+      end
     end
+
+    redirect_to game_path(@game)
   end
 
-  redirect_to game_path(@game)
-end
+  def eliminate
+    @game = Game.find(params[:game_id])
+    @player = @game.players.find(params[:id])
 
+    # Помечаем как изгнанного
+    @player.update!(eliminated: true)
 
-def eliminate
-  @game = Game.find(params[:game_id])
-  @player = @game.players.find(params[:id])
+    # Отправляем красно-мигающий экран изгнания на телефон конкретно этого игрока
+    Turbo::StreamsChannel.broadcast_replace_to(
+      @player,
+      target: "player_#{@player.id}_screen",
+      partial: "players/player_screen",
+      locals: { player: @player, game: @game }
+    )
 
-  # Помечаем как изгнанного
-  @player.update!(eliminated: true)
+    redirect_to game_path(@game), notice: "Игрок #{@player.id} изгнан!"
+  end
 
-  # Отправляем красно-мигающий экран изгнания на телефон конкретно этого игрока
-  Turbo::StreamsChannel.broadcast_replace_to(
-    @player,
-    target: "player_#{@player.id}_screen",
-    partial: "players/player_screen",
-    locals: { player: @player, game: @game }
-  )
-
-  redirect_to game_path(@game), notice: "Игрок #{@player.id} изгнан!"
-end
-
-   def report
+  def report
     @game = Game.includes(:catastrophe, players: { player_cards: :card }).find(params[:id])
 
     # Меняем статус игры на "завершена", если еще не поменяли

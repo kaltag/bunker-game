@@ -127,16 +127,21 @@ class GameGenerator
       -> { synergy_farming(players) },
       -> { synergy_engineering(players) },
       -> { synergy_security(players) },
-      -> { synergy_alcohol(players) }
+      -> { synergy_alcohol(players) },
+      -> { synergy_chemist_addict(players) },
+      -> { synergy_cook_supplies(players) },
+      -> { synergy_hacker_gadget(players) },
+      -> { synergy_entertainment(players) },
+      -> { synergy_criminal_lockpick(players) }
     ]
 
-     # Выбираем случайное количество синергий и запускаем их
-     possible_synergies.sample(rand(min_s..max_s)).each(&:call)
+    # Выбираем случайное количество синергий и запускаем их
+    possible_synergies.sample(rand(min_s..max_s)).each(&:call)
   end
 
   # 1. Врач + Излечимый больной (односторонняя)
   def synergy_medical(players)
-    doctor = players.find { |p| p.profession&.tags&.include?("medical") }
+    doctor = players.find { |p| p.profession&.tags.to_s.include?("medical") }
     patient = players.reject { |p| p == doctor || p.cards.any? { |c| c.category == "health" } }.sample
     if doctor && patient
       disease = @available_cards["health"].select { |c| c.is_curable && c.weight < 0 }.sample
@@ -146,52 +151,109 @@ class GameGenerator
 
   # 2. Психолог + Тяжелая фобия/расстройство (односторонняя)
   def synergy_psychological(players)
-    psychologist = players.find { |p| p.profession&.tags&.include?("mental_health") }
+    psychologist = players.find { |p| p.profession&.tags.to_s.include?("mental_health") }
     patient = players.reject { |p| p == psychologist || p.cards.any? { |c| c.category == "phobia" } }.sample
     if psychologist && patient
-      phobia = @available_cards["phobia"].select { |c| c.tags.include?("panic") && c.weight < 0 }.sample
+      phobia = @available_cards["phobia"].select { |c| c.tags.to_s.include?("panic") && c.weight < 0 }.sample
       add_card_to_player(patient, phobia)
     end
   end
 
   # 3. Фермер + Семена/Саженцы (двусторонняя)
   def synergy_farming(players)
-    farmer = players.find { |p| p.profession&.tags&.include?("agriculture") }
-    # Ищем другого игрока, у которого еще нет багажа
+    farmer = players.find { |p| p.profession&.tags.to_s.include?("agriculture") }
     partner = players.reject { |p| p == farmer || p.cards.any? { |c| c.category == "luggage" } }.sample
     if farmer && partner
-      seeds = @available_cards["luggage"].find { |c| c.tags.include?("farming") }
-      add_card_to_player(partner, seeds)
+      seeds = @available_cards["luggage"].find { |c| c.tags.to_s.include?("farming") }
+      add_card_to_player(partner, seeds) if seeds
     end
   end
 
   # 4. Инженер/Электрик + Инструменты (двусторонняя)
   def synergy_engineering(players)
-    engineer = players.find { |p| p.profession&.tags&.include?("technical") }
+    engineer = players.find { |p| p.profession&.tags.to_s.include?("technical") }
     partner = players.reject { |p| p == engineer || p.cards.any? { |c| c.category == "luggage" } }.sample
     if engineer && partner
-      tools = @available_cards["luggage"].select { |c| c.tags.include?("repair") }.sample
-      add_card_to_player(partner, tools)
+      tools = @available_cards["luggage"].select { |c| c.tags.to_s.include?("repair") }.sample
+      add_card_to_player(partner, tools) if tools
     end
   end
 
   # 5. Военный/Полицейский + Оружие (Синергия с самим собой или партнером)
   def synergy_security(players)
-    security = players.find { |p| p.profession&.tags&.include?("security") }
+    security = players.find { |p| p.profession&.tags.to_s.include?("security") }
     target = [ security, players.sample ].sample # 50% шанс, что оружие будет у него самого
     if security && target && target.cards.none? { |c| c.category == "luggage" }
-      weapon = @available_cards["luggage"].select { |c| c.tags.include?("weapon") }.sample
-      add_card_to_player(target, weapon)
+      weapon = @available_cards["luggage"].select { |c| c.tags.to_s.include?("weapon") }.sample
+      add_card_to_player(target, weapon) if weapon
     end
   end
 
   # 6. Производитель алкоголя + Алкоголик (Опасная синергия)
   def synergy_alcohol(players)
-    brewer = players.find { |p| p.profession&.tags&.include?("alcohol") || p.cards.any? { |c| c.tags.include?("alcohol") } }
+    brewer = players.find { |p| p.profession&.tags.to_s.include?("alcohol") || p.cards.any? { |c| c.tags.to_s.include?("alcohol") } }
     addict = players.reject { |p| p == brewer || p.cards.any? { |c| c.category == "health" } }.sample
     if brewer && addict
       alcoholism = @available_cards["health"].find { |c| c.name == "Алкоголизм" }
-      add_card_to_player(addict, alcoholism)
+      add_card_to_player(addict, alcoholism) if alcoholism
+    end
+  end
+
+  # 7. НОВАЯ: Химик/Ученый + Наркозависимый (Драматичная)
+  def synergy_chemist_addict(players)
+    chemist = players.find { |p| p.profession&.tags.to_s.match?(/chemical|science/) }
+    addict = players.reject { |p| p == chemist || p.cards.any? { |c| c.category == "health" } }.sample
+    if chemist && addict
+      drugs = @available_cards["health"].find { |c| c.name.include?("Зависимость") }
+      add_card_to_player(addict, drugs) if drugs
+    end
+  end
+
+  # 8. НОВАЯ: Повар + Еда в багаже (Двусторонняя)
+  def synergy_cook_supplies(players)
+    cook = players.find { |p| p.profession&.tags.to_s.include?("food") }
+    partner = players.reject { |p| p == cook || p.cards.any? { |c| c.category == "luggage" } }.sample
+    if cook && partner
+      food_luggage = @available_cards["luggage"].select { |c| c.tags.to_s.include?("food") }.sample
+      add_card_to_player(partner, food_luggage) if food_luggage
+    end
+  end
+
+  # 9. НОВАЯ: Хакер/Программист + Ноутбук и платы (Для себя или соседа)
+  def synergy_hacker_gadget(players)
+    hacker = players.find { |p| p.profession&.tags.to_s.include?("software") }
+    target = [ hacker, players.sample ].sample
+    if hacker && target && target.cards.none? { |c| c.category == "luggage" }
+      laptop = @available_cards["luggage"].find { |c| c.name.include?("Ноутбук") }
+      add_card_to_player(target, laptop) if laptop
+    end
+  end
+
+  # 10. НОВАЯ: Творческий человек + Депрессия (Поддержка морали)
+  def synergy_entertainment(players)
+    entertainer = players.find { |p| p.profession&.tags.to_s.match?(/art|social/) }
+    depressed = players.reject { |p| p == entertainer || p.cards.any? { |c| c.category == "health" } }.sample
+    if entertainer && depressed
+      depression = @available_cards["health"].find { |c| c.name.include?("Депрессия") || c.name.include?("Суицидальные") }
+      add_card_to_player(depressed, depression) if depression
+
+      # Даем гитару или настолки самому творческому, если у него еще нет багажа
+      if entertainer.cards.none? { |c| c.category == "luggage" }
+        fun_luggage = @available_cards["luggage"].select { |c| c.tags.to_s.include?("social") || c.tags.to_s.include?("mental") }.sample
+        add_card_to_player(entertainer, fun_luggage) if fun_luggage
+      end
+    end
+  end
+
+  # 11. НОВАЯ: Криминал + Отмычки (Тайная синергия)
+  def synergy_criminal_lockpick(players)
+    thief = players.reject { |p| p.cards.any? { |c| c.category == "fact" } }.sample
+    target = players.reject { |p| p == thief || p.cards.any? { |c| c.category == "luggage" } }.sample
+    if thief && target
+      criminal_fact = @available_cards["fact"].select { |c| c.tags.to_s.include?("criminal") }.sample
+      lockpicks = @available_cards["luggage"].find { |c| c.name.include?("отмычек") }
+      add_card_to_player(thief, criminal_fact) if criminal_fact
+      add_card_to_player(target, lockpicks) if lockpicks
     end
   end
   # --- КОНЕЦ БЛОКА СИНЕРГИЙ ---
@@ -207,8 +269,9 @@ class GameGenerator
       card = find_balancing_card(cards_pool, player)
       add_card_to_player(player, card)
 
-      # Удаляем карту из пула, чтобы она не дублировалась (КРОМЕ базовых карт "Здоров" и "Нет фобий", их можно дублировать)
-      unless card.tags.include?("healthy") || card.tags.include?("brave")
+      # Удаляем карту из пула, чтобы она не дублировалась (КРОМЕ базовых карт "Здоров"
+      # и "Нет фобий", их можно дублировать) || card.tags.include?("brave") "Нет фобий" пока убрали дублирование
+      unless card.tags.include?("healthy")
         cards_pool.delete(card)
       end
     end
@@ -217,7 +280,13 @@ class GameGenerator
   # Подбираем карту, чтобы КП игрока стремился к нулю
   def find_balancing_card(cards_pool, player)
     current_weight = player.cards.sum(&:weight)
-    cards_pool.min_by { |card| (current_weight + card.weight).abs }
+
+    # Сортируем карты по тому, насколько они подходят к 0
+    sorted_cards = cards_pool.sort_by { |card| (current_weight + card.weight).abs }
+
+    # Вместо того чтобы всегда брать самую первую (идеальную),
+    # берем одну из 2-х лучших, чтобы добавить вариативности.
+    sorted_cards.first(2).sample
   end
 
   # Добавляем карту игроку, учитывая правила тяжести болезней
