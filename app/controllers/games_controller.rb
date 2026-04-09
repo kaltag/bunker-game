@@ -94,39 +94,6 @@ class GamesController < ApplicationController
     # 2. Увеличиваем раунд (до финала 6)
     if @game.current_round <= 5
       @game.update!(current_round: @game.current_round + 1)
-
-      # 3. Обновляем шапку на пульте Ведущего (передаем локальную переменную game)
-      Turbo::StreamsChannel.broadcast_replace_to(
-        @game,
-        target: "game_info_#{@game.id}",
-        partial: "games/game_info",
-        locals: { game: @game }
-      )
-
-      # 4. Обновляем экраны ВСЕХ ИГРОКОВ (и тех кто вернулся, и тех кто ждал)
-      @game.players.each do |player|
-        Turbo::StreamsChannel.broadcast_replace_to(
-          player,
-          target: "player_#{player.id}_screen",
-          partial: "players/player_screen",
-          locals: { player: player, game: @game }
-        )
-
-        # Дополнительно обновляем маленькую карточку этого игрока на пульте ведущего
-        # Чтобы сразу увидеть его новые статы или статус "УМЕР"
-        Turbo::StreamsChannel.broadcast_replace_to(
-          @game,
-          target: "host_player_#{player.id}",
-          partial: "players/host_card",
-          locals: { player: player }
-        )
-      end
-
-      Turbo::StreamsChannel.broadcast_replace_to(
-        @game,
-        target: "raid_system_container",
-        html: "<div id='raid_system_container'></div>"
-      )
     end
 
     redirect_to game_path(@game), notice: "Раунд обновлен, группа вернулась из вылазки!"

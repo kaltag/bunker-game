@@ -12,17 +12,10 @@ class PlayersController < ApplicationController
     @player = @game.players.find(params[:id])
 
     if @player.update(name: params[:player][:name])
-      # Как только игрок ввел имя, мгновенно обновляем его карточку на пульте Ведущего
-      Turbo::StreamsChannel.broadcast_replace_to(
-        @game, target: "host_player_#{@player.id}", partial: "players/host_card", locals: { player: @player }
-      )
-      # И обновляем его собственный экран
-      Turbo::StreamsChannel.broadcast_replace_to(
-        @player, target: "player_#{@player.id}_screen", partial: "players/player_screen", locals: { player: @player, game: @game }
-      )
+      redirect_to game_player_path(@game, @player)
+    else
+      render :show
     end
-
-    redirect_to game_player_path(@game, @player)
   end
 
   def reveal_biology
@@ -43,9 +36,6 @@ class PlayersController < ApplicationController
 
     # Помечаем как изгнанного
     @player.update!(eliminated: true)
-
-    # МАГИЯ: Заставляем экраны Ведущего и ВСЕХ ИГРОКОВ мгновенно перезагрузиться
-    Turbo::StreamsChannel.broadcast_refresh_to(@game)
 
     redirect_to game_path(@game), notice: "Игрок #{@player.id} изгнан из бункера!"
   end

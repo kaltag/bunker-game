@@ -3,12 +3,12 @@ class Game < ApplicationRecord
   belongs_to :catastrophe, optional: true # optional: true на случай, если мы будем создавать игру в два этапа
   belongs_to :threat, optional: true
 
-
-
-   # Статусы игры: подготовка, идет игра, завершена
-   enum :status, { preparing: "preparing", in_progress: "in_progress", finished: "finished" }, default: "preparing"
+  # Статусы игры: подготовка, идет игра, завершена
+  enum :status, { preparing: "preparing", in_progress: "in_progress", finished: "finished" }, default: "preparing"
   # Генерация случайного кода для игры (например "A1B2"), чтобы кидать ссылку друзьям
   before_create :generate_code
+
+  broadcasts_refreshes
 
   # Динамический расчет: сколько человек выгоняем в текущем раунде
   def eliminations_this_round
