@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_09_080654) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_09_091944) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -109,6 +109,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_09_080654) do
     t.boolean "eliminated", default: false
     t.string "raid_status", default: "at_home"
     t.text "raid_outcome"
+    t.string "nickname"
     t.index ["game_id"], name: "index_players_on_game_id"
   end
 
