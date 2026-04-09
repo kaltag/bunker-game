@@ -1,20 +1,13 @@
 class Player < ApplicationRecord
-  belongs_to :game
+  belongs_to :game, touch: true
   has_many :player_cards, dependent: :destroy
   has_many :cards, through: :player_cards
   has_many :player_action_cards, dependent: :destroy
 
+  broadcasts_refreshes
 
   # Колбэк: срабатывает прямо перед созданием игрока в базе
   before_create :generate_biological_stats
-
-  # Отправляем обновление при вскрытии биологии
-  after_update_commit -> {
-    broadcast_replace_to game,
-    target: "host_player_#{id}",
-    partial: "players/host_card",
-    locals: { player: self }
-  }
 
   # Удобные методы для карточек
   def profession

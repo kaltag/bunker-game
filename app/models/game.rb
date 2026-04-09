@@ -1,7 +1,7 @@
 class Game < ApplicationRecord
-  has_many :players, dependent: :destroy
-  belongs_to :catastrophe, optional: true # optional: true на случай, если мы будем создавать игру в два этапа
+  belongs_to :catastrophe
   belongs_to :threat, optional: true
+  has_many :players, dependent: :destroy
 
   # Статусы игры: подготовка, идет игра, завершена
   enum :status, { preparing: "preparing", in_progress: "in_progress", finished: "finished" }, default: "preparing"

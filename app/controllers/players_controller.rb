@@ -11,10 +11,10 @@ class PlayersController < ApplicationController
     @game = Game.find(params[:game_id])
     @player = @game.players.find(params[:id])
 
-    if @player.update(name: params[:player][:name])
+    if @player.update(player_params)
       redirect_to game_player_path(@game, @player)
     else
-      render :show
+      render :show, status: :unprocessable_entity
     end
   end
 
@@ -38,5 +38,11 @@ class PlayersController < ApplicationController
     @player.update!(eliminated: true)
 
     redirect_to game_path(@game), notice: "Игрок #{@player.id} изгнан из бункера!"
+  end
+
+  private
+
+  def player_params
+    params.require(:player).permit(:name)
   end
 end
