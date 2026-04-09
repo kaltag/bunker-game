@@ -87,4 +87,13 @@ Rails.application.configure do
   #
   # Skip DNS rebinding protection for the default health check endpoint.
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
+  #
+  config.action_cable.allowed_request_origins = [
+  "https://bunker-game-l0vt.onrender.com",
+  /https:\/\/bunker-game-.*\.onrender\.com/
+]
+
+  # Важно для Render: так как он работает через прокси, Rails должен доверять заголовкам
+  config.assume_ssl = true
+  config.force_ssl = true
 end

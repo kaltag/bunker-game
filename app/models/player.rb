@@ -3,6 +3,7 @@ class Player < ApplicationRecord
   has_many :player_cards, dependent: :destroy
   has_many :cards, through: :player_cards
   has_many :player_action_cards, dependent: :destroy
+  after_commit -> { broadcast_refresh_to(game) }, on: :update
 
   broadcasts_refreshes
 
