@@ -58,13 +58,8 @@ class GamesController < ApplicationController
     raid = Raid.order("RANDOM()").first
 
     if params[:raider_ids].present?
-      players = @game.players.where(id: params[:raider_ids])
-
-      @game.players.update_all(raid_outcome: nil, raid_status: "at_home")
-
-      players.each do |player|
-        player.update!(raid_status: "raiding")
-      end
+      Player.where(game_id: @game.id).update_all(raid_outcome: nil)
+      Player.where(id: params[:raider_ids]).update_all(raid_status: "raiding")
 
       @game.update!(active_raid_id: raid.id)
 

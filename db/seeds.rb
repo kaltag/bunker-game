@@ -1,9 +1,7 @@
 # db/seeds.rb
 puts "Полная очистка старых данных..."
-Game.destroy_all
-PlayerCard.delete_all
-Player.delete_all
-Card.destroy_all
+ActiveRecord::Base.connection.execute("TRUNCATE games, players, player_cards, cards, threats, catastrophes, bunker_features, action_cards, raids RESTART IDENTITY CASCADE")
+
 
 puts "Создание профессий (расширенный список)..."
 professions = [
