@@ -7,6 +7,8 @@ Rails.application.routes.draw do
     member do
       post :reveal_next_round
       post :start_raid
+      post :reveal_threat # <--- Вскрыть угрозу
+      post :reveal_raid_system # <--- Вскрыть блок рейдов
       get :report
     end
 

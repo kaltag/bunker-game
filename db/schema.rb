@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_07_135649) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_09_080654) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -67,6 +67,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_07_135649) do
     t.jsonb "bunker_features"
     t.bigint "threat_id"
     t.integer "active_raid_id"
+    t.boolean "threat_revealed"
+    t.boolean "raid_params_revealed"
     t.index ["catastrophe_id"], name: "index_games_on_catastrophe_id"
     t.index ["threat_id"], name: "index_games_on_threat_id"
   end

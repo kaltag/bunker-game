@@ -120,4 +120,16 @@ class GamesController < ApplicationController
 
     redirect_to game_path(@game)
   end
+
+  def reveal_threat
+    @game = Game.find(params[:id])
+    @game.update(threat_revealed: true)
+    redirect_to game_path(@game), notice: "Угроза вскрыта!"
+  end
+
+  def reveal_raid_system
+    @game = Game.find(params[:id])
+    @game.update(raid_params_revealed: true)
+    redirect_to game_path(@game), notice: "Система рейдов активирована!"
+  end
 end
