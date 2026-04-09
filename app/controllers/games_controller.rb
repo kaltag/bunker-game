@@ -28,27 +28,6 @@ class GamesController < ApplicationController
     @players = @game.players.includes(player_cards: :card)
   end
 
-  def reveal_next_round
-    @game = Game.find(params[:id])
-
-    # Изменение: теперь мы разрешаем переход с 5 на 6 раунд (Финал)
-    if @game.current_round <= 5
-      @game.increment!(:current_round)
-
-      # Надежный способ обновить экраны всех игроков в реальном времени
-      @game.players.each do |player|
-        Turbo::StreamsChannel.broadcast_replace_to(
-          player,
-          target: "player_#{player.id}_screen",
-          partial: "players/player_screen",
-          locals: { player: player, game: @game }
-        )
-      end
-    end
-
-    redirect_to game_path(@game)
-  end
-
   def eliminate
     @game = Game.find(params[:game_id])
     @player = @game.players.find(params[:id])
@@ -98,33 +77,65 @@ class GamesController < ApplicationController
   def reveal_next_round
     @game = Game.find(params[:id])
 
-    # Если был активный рейд — подводим итоги ПЕРЕД переходом
+    # 1. Сначала возвращаем игроков из рейда (если он был запущен)
     if @game.active_raid_id.present?
       raid = Raid.find(@game.active_raid_id)
       raiders = @game.players.where(raid_status: "raiding")
 
       raiders.each do |player|
-        # Вызываем наш сервис из Шага 3
+        # Запускаем логику выживания для каждого
         RaidResolver.call(player, raid)
       end
 
-      # Очищаем активный рейд
-      @game.update!(active_raid_id: nil)
+      # Закрываем рейд в базе
+      @game.update!(active_raid_id: nil, raid_params_revealed: false)
     end
 
-    # Обычный переход к раунду
+    # 2. Увеличиваем раунд (до финала 6)
     if @game.current_round <= 5
-      @game.increment!(:current_round)
-      # ... здесь код broadcast_replace_to для игроков из прошлого шага ...
+      @game.update!(current_round: @game.current_round + 1)
+
+      # 3. Обновляем шапку на пульте Ведущего (передаем локальную переменную game)
+      Turbo::StreamsChannel.broadcast_replace_to(
+        @game,
+        target: "game_info_#{@game.id}",
+        partial: "games/game_info",
+        locals: { game: @game }
+      )
+
+      # 4. Обновляем экраны ВСЕХ ИГРОКОВ (и тех кто вернулся, и тех кто ждал)
+      @game.players.each do |player|
+        Turbo::StreamsChannel.broadcast_replace_to(
+          player,
+          target: "player_#{player.id}_screen",
+          partial: "players/player_screen",
+          locals: { player: player, game: @game }
+        )
+
+        # Дополнительно обновляем маленькую карточку этого игрока на пульте ведущего
+        # Чтобы сразу увидеть его новые статы или статус "УМЕР"
+        Turbo::StreamsChannel.broadcast_replace_to(
+          @game,
+          target: "host_player_#{player.id}",
+          partial: "players/host_card",
+          locals: { player: player }
+        )
+      end
+
+      Turbo::StreamsChannel.broadcast_replace_to(
+        @game,
+        target: "raid_system_container",
+        html: "<div id='raid_system_container'></div>"
+      )
     end
 
-    redirect_to game_path(@game)
+    redirect_to game_path(@game), notice: "Раунд обновлен, группа вернулась из вылазки!"
   end
 
   def reveal_threat
     @game = Game.find(params[:id])
     @game.update(threat_revealed: true)
-    redirect_to game_path(@game), notice: "Угроза вскрыта!"
+    redirect_to game_path(@game)
   end
 
   def reveal_raid_system
