@@ -63,10 +63,29 @@ class RaidResolver
     PlayerActionCard.create!(player: player, action_card: ac) if ac
   end
 
-  def self.apply_injury(player)
+ def self.apply_injury(player)
+    # Находим текущую карту здоровья игрока
     health_pc = player.player_cards.joins(:card).find_by(cards: { category: "health" })
-    if health_pc && health_pc.severity
-      health_pc.update!(severity: [ health_pc.severity + 30, 100 ].min)
+    return unless health_pc
+
+    # Проверяем, был ли игрок здоров или не обследован
+    if health_pc.card.tags.include?("healthy") || health_pc.card.tags.include?("unknown")
+      # Игрок был здоров -> ЗАМЕНЯЕМ карту на случайную плохую
+      # Выбираем любую болезнь, кроме "Идеально здоров"
+      bad_health_card = Card.where(category: "health")
+                            .where.not("tags LIKE ?", "%healthy%")
+                            .where.not("tags LIKE ?", "%unknown%")
+                            .order("RANDOM()").first
+
+      if bad_health_card
+        # Принудительно вскрываем новую болезнь, чтобы все видели ранение
+        health_pc.update!(card: bad_health_card, severity: 40, revealed: true)
+      end
+    else
+      # Игрок уже был болен -> УВЕЛИЧИВАЕМ тяжесть
+      # Если severity был nil (мало ли), считаем его за 20
+      current_severity = health_pc.severity || 20
+      health_pc.update!(severity: [ current_severity + 30, 100 ].min, revealed: true)
     end
   end
 end
