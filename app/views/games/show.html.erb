@@ -6,7 +6,7 @@
     <%= render "games/game_info", game: @game %>
     
     <!-- Список карточек игроков (Улучшенная сетка) -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 md:gap-6">
+    <div id="players_grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 md:gap-6">
       <% @players.each do |player| %>
         <%= render "players/host_card", player: player %>
       <% end %>

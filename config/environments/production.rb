@@ -91,7 +91,8 @@ Rails.application.configure do
   config.action_cable.allowed_request_origins = [
   "https://bunker-game-l0vt.onrender.com",
   /https:\/\/bunker-game-.*\.onrender\.com/
-]
+  ]
+  config.action_cable.worker_pool_size = 4
 
   # Важно для Render: так как он работает через прокси, Rails должен доверять заголовкам
   config.assume_ssl = true
