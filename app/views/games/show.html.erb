@@ -1,169 +1,175 @@
-<div class="min-h-screen bg-gray-900 text-white p-6 font-sans">
-  <div class="max-w-7xl mx-auto">
+<div class="min-h-screen bg-gray-900 text-white p-4 md:p-6 lg:p-8 font-sans">
+  <div class="max-w-[1400px] mx-auto">
     
     <!-- Шапка игры -->
-    <div class="bg-gray-800 rounded-xl p-6 mb-8 border border-gray-700">
-      <div class="flex flex-col md:flex-row justify-between items-start gap-6">
-        <div class="max-w-3xl">
-          <h1 class="text-3xl font-bold text-red-500 mb-2 uppercase tracking-tight">
+    <div class="bg-gray-800 rounded-2xl p-5 md:p-8 mb-8 border border-gray-700 shadow-xl">
+      <div class="flex flex-col lg:flex-row justify-between items-start gap-8">
+        <div class="flex-1 w-full">
+          <h1 class="text-3xl md:text-4xl font-bold text-red-500 mb-2 uppercase tracking-tight">
             Катастрофа: <%= @game.catastrophe&.name %>
           </h1>
-          <p class="text-gray-300 italic mb-4 leading-relaxed">
+          <p class="text-gray-300 text-sm md:text-base italic mb-6 leading-relaxed max-w-4xl">
             "<%= @game.catastrophe&.description %>"
           </p>
           
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-sm bg-gray-900 p-4 rounded-lg border border-gray-700">
-            <div>
-              <span class="text-gray-500 block uppercase text-xs font-bold mb-1">Срок:</span> 
-              <span class="text-lg font-bold text-yellow-500"><%= @game.bunker_duration %> лет</span>
+          <!-- Сетка бункера -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm md:text-base bg-gray-900 p-5 rounded-xl border border-gray-700">
+            <div class="bg-gray-800/50 p-3 rounded-lg">
+              <span class="text-gray-500 block uppercase text-xs md:text-sm font-bold mb-1">Срок:</span> 
+              <span class="text-xl md:text-2xl font-black text-yellow-500"><%= @game.bunker_duration %> лет</span>
             </div>
-            <div>
-              <span class="text-gray-500 block uppercase text-xs font-bold mb-1">Вместимость:</span> 
-              <span class="text-lg font-bold text-red-500"><%= @game.bunker_capacity %> из <%= @game.players.count %></span>
+            <div class="bg-gray-800/50 p-3 rounded-lg">
+              <span class="text-gray-500 block uppercase text-xs md:text-sm font-bold mb-1">Вместимость:</span> 
+              <span class="text-xl md:text-2xl font-black text-red-500"><%= @game.bunker_capacity %> / <%= @game.players.count %></span>
             </div>
-            <div>
-              <span class="text-gray-500 block uppercase text-xs font-bold mb-1">Ресурсы:</span> 
-              <span class="font-semibold text-gray-200"><%= @game.bunker_supplies %></span>
+            <div class="bg-gray-800/50 p-3 rounded-lg">
+              <span class="text-gray-500 block uppercase text-xs md:text-sm font-bold mb-1">Ресурсы:</span> 
+              <span class="text-lg font-semibold text-gray-200 leading-tight block"><%= @game.bunker_supplies %></span>
             </div>
-            <div>
-              <span class="text-gray-500 block uppercase text-xs font-bold mb-1">Размер:</span> 
-              <span class="font-semibold text-gray-200"><%= @game.bunker_size %></span>
+            <div class="bg-gray-800/50 p-3 rounded-lg">
+              <span class="text-gray-500 block uppercase text-xs md:text-sm font-bold mb-1">Размер:</span> 
+              <span class="text-lg font-semibold text-gray-200 leading-tight block"><%= @game.bunker_size %></span>
             </div>
-            <div class="bg-gray-800 p-4 border-l border-r border-b border-gray-700 text-sm">
-              <span class="text-gray-400 uppercase text-xs font-bold block mb-2">Особенности убежища:</span>
-              <div class="space-y-2">
+            
+            <div class="col-span-2 md:col-span-4 bg-gray-800 p-4 md:p-5 rounded-lg border border-gray-700 mt-2">
+              <span class="text-gray-400 uppercase text-xs md:text-sm font-bold block mb-3">Особенности убежища:</span>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <% @game.bunker_features.each do |feature| %>
-                  <div class="bg-gray-900/50 p-2 rounded border border-gray-700">
-                    <strong class="text-blue-300"><%= feature['name'] %>:</strong>
-                    <span class="text-gray-300 italic"><%= feature['description'] %></span>
+                  <div class="bg-gray-900 p-3 rounded-lg border border-gray-700/50">
+                    <strong class="text-blue-300 text-sm md:text-base block mb-1"><%= feature['name'] %></strong>
+                    <span class="text-gray-400 text-xs md:text-sm"><%= feature['description'] %></span>
                   </div>
                 <% end %>
               </div>
             </div>
-             <!-- Внезапная Угроза (Появляется для ведущего) -->
-            <div class="bg-red-900/40 p-4 rounded-b-lg border-l border-r border-b border-red-800 text-sm mt-0 relative overflow-hidden">
-              <span class="bg-red-600 text-white text-[10px] uppercase font-black px-2 py-1 rounded absolute top-2 right-2">
-                ЗАЧИТАТЬ В 3 РАУНДЕ
+
+            <!-- Внезапная Угроза -->
+            <div class="col-span-2 md:col-span-4 bg-red-900/30 p-5 rounded-lg border border-red-800/50 relative overflow-hidden mt-2">
+              <span class="bg-red-600 text-white text-xs uppercase font-black px-3 py-1 rounded absolute top-3 right-3 shadow-lg">
+                В 3 РАУНДЕ
               </span>
-              <span class="text-red-300 uppercase text-xs font-bold block mb-1">
-                Внезапная угроза: <%= @game.threat&.name %>
+              <span class="text-red-400 uppercase text-sm font-bold block mb-2">
+                Угроза: <%= @game.threat&.name %>
               </span>
-              <span class="text-white font-semibold italic">
+              <span class="text-gray-200 text-sm md:text-base font-medium">
                 "<%= @game.threat&.description %>"
               </span>
             </div>
+          </div>
 
-            <div class="mt-6 bg-indigo-900/30 border border-indigo-500 rounded-xl p-4 shadow-2xl">
-              <h3 class="text-indigo-300 font-black uppercase text-sm mb-3 flex items-center">
-                <span class="mr-2">🚀</span> Система рейдов
-              </h3>
+          <!-- Система рейдов -->
+          <div class="mt-8 bg-indigo-900/20 border border-indigo-500/50 rounded-2xl p-5 md:p-6 shadow-2xl">
+            <h3 class="text-indigo-400 font-black uppercase text-base md:text-lg mb-4 flex items-center">
+              <span class="mr-3 text-2xl">🚀</span> Система рейдов
+            </h3>
 
-              <% if @game.active_raid_id.present? %>
-                <% raid = Raid.find(@game.active_raid_id) %>
-                <div class="bg-indigo-950 p-4 rounded-lg border border-indigo-400 border-dashed text-center">
-                  <p class="text-white font-bold text-lg mb-1"><%= raid.name %></p>
-                  <p class="text-indigo-200 text-xs italic mb-3">"<%= raid.description %>"</p>
-                  <div class="inline-block px-4 py-1 bg-indigo-600 text-white text-[10px] font-black rounded-full animate-pulse uppercase">
-                    Группа на поверхности...
-                  </div>
+            <% if @game.active_raid_id.present? %>
+              <% raid = Raid.find(@game.active_raid_id) %>
+              <div class="bg-indigo-950/80 p-6 md:p-8 rounded-xl border border-indigo-400 border-dashed text-center">
+                <p class="text-white font-bold text-xl md:text-2xl mb-2"><%= raid.name %></p>
+                <p class="text-indigo-300 text-sm md:text-base italic mb-4 max-w-2xl mx-auto">"<%= raid.description %>"</p>
+                <div class="inline-block px-6 py-2 bg-indigo-600 text-white text-xs md:text-sm font-black rounded-full animate-pulse uppercase tracking-widest">
+                  Группа на поверхности...
                 </div>
-              <% else %>
-                <div class="mb-4 p-3 bg-indigo-950/50 rounded-lg border border-indigo-800">
-                  <p class="text-indigo-300 text-[10px] font-black uppercase mb-2 tracking-widest">Рекомендация системы (Голосуйте!):</p>
-                  <div class="flex gap-2">
-                    <% @game.raid_candidates.each do |candidate| %>
-                      <div class="bg-indigo-600 text-white px-2 py-1 rounded text-[10px] font-bold">
-                        Игрок <%= @game.players.order(:id).index(candidate) + 1 %> (<%= candidate.profession&.name %>)
-                      </div>
-                    <% end %>
-                  </div>
-                </div>
-
-                <%= form_with url: start_raid_game_path(@game), method: :post, class: "space-y-4" do |f| %>
-                  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                    <% @game.players.where(eliminated: false).each do |p| %>
-                      <label class="relative flex items-center justify-center p-2 rounded border border-gray-700 cursor-pointer hover:bg-indigo-900/50 transition group">
-                        <%= check_box_tag "raider_ids[]", p.id, false, class: "absolute top-1 left-1 rounded text-indigo-600 bg-gray-900 border-gray-600" %>
-                        <div class="text-center">
-                          <p class="text-[10px] text-gray-400 group-hover:text-white">Игрок <%= @game.players.order(:id).index(p) + 1 %></p>
-                          <p class="text-[9px] font-bold text-indigo-300 truncate w-24"><%= p.profession&.name %></p>
-                        </div>
-                      </label>
-                    <% end %>
-                  </div>
-                  <%= f.submit "ПОДТВЕРДИТЬ СОСТАВ И ОТПРАВИТЬ", class: "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-3 rounded-lg text-xs tracking-widest transition shadow-lg cursor-pointer" %>
-                <% end %>
-              <% end %>
-            </div>
-
-            <!-- СВОДКА РЕЗУЛЬТАТОВ РЕЙДА (для Ведущего) -->
-            <% recent_raiders = @game.players.where.not(raid_outcome: nil).where.not(raid_status: 'raiding') %>
-            <% if recent_raiders.any? %>
-              <div class="mb-8 bg-black/50 border-2 border-indigo-500 rounded-xl p-6 shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-                <div class="flex justify-between items-center mb-4">
-                  <h2 class="text-indigo-400 font-black uppercase tracking-widest text-lg">📢 Итоги последней вылазки</h2>
-                  <!-- Кнопка очистки лога (просто обновит страницу) -->
-                  <%= button_to "ЗАКРЫТЬ ОТЧЕТ", game_path(@game), method: :get, class: "text-[10px] bg-gray-700 px-3 py-1 rounded hover:bg-gray-600" %>
-                </div>
-                
-                <div class="space-y-3">
-                  <% recent_raiders.each do |p| %>
-                    <div class="flex items-start gap-4 p-3 rounded bg-gray-900 border-l-4 <%= p.raid_status == 'dead' ? 'border-red-600' : 'border-green-500' %>">
-                      <div class="flex-shrink-0 font-bold text-indigo-300">
-                        Игрок <%= @game.players.order(:id).index(p) + 1 %>:
-                      </div>
-                      <div class="text-sm text-gray-200">
-                        <span class="font-bold uppercase <%= p.raid_status == 'dead' ? 'text-red-500' : 'text-green-400' %>">
-                          [<%= p.raid_status.humanize %>]
-                        </span> 
-                        <%= p.raid_outcome %>
-                      </div>
+              </div>
+            <% else %>
+              <div class="mb-5 p-4 bg-indigo-950/50 rounded-xl border border-indigo-800/50">
+                <p class="text-indigo-300 text-xs md:text-sm font-black uppercase mb-3 tracking-widest">Рекомендация ИИ (Голосуйте!):</p>
+                <div class="flex flex-wrap gap-2 md:gap-3">
+                  <% @game.raid_candidates.each do |candidate| %>
+                    <div class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow">
+                      Игрок <%= @game.players.order(:id).index(candidate) + 1 %> <span class="text-indigo-200 font-normal hidden sm:inline">(<%= candidate.profession&.name %>)</span>
                     </div>
                   <% end %>
                 </div>
               </div>
-            <% end %>
 
+              <%= form_with url: start_raid_game_path(@game), method: :post, class: "space-y-5" do |f| %>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  <% @game.players.where(eliminated: false).each do |p| %>
+                    <label class="relative flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border border-indigo-900 bg-gray-900/50 cursor-pointer hover:bg-indigo-900/40 hover:border-indigo-400 transition-all group">
+                      <%= check_box_tag "raider_ids[]", p.id, false, class: "absolute top-2 left-2 w-4 h-4 rounded text-indigo-600 bg-gray-800 border-gray-600 focus:ring-indigo-500 focus:ring-offset-gray-900" %>
+                      <div class="text-center mt-2 md:mt-0 w-full">
+                        <p class="text-xs md:text-sm text-gray-400 group-hover:text-white font-medium">Игрок <%= @game.players.order(:id).index(p) + 1 %></p>
+                        <p class="text-[10px] md:text-xs font-bold text-indigo-300 truncate w-full mt-1" title="<%= p.profession&.name %>"><%= p.profession&.name %></p>
+                      </div>
+                    </label>
+                  <% end %>
+                </div>
+                <%= f.submit "ПОДТВЕРДИТЬ СОСТАВ И ОТПРАВИТЬ", class: "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl text-sm md:text-base tracking-widest transition shadow-lg cursor-pointer mt-2" %>
+              <% end %>
+            <% end %>
           </div>
-          </div>
+
+          <!-- СВОДКА РЕЗУЛЬТАТОВ РЕЙДА -->
+          <% recent_raiders = @game.players.where.not(raid_outcome: nil).where.not(raid_status: 'raiding') %>
+          <% if recent_raiders.any? %>
+            <div class="mt-8 bg-gray-900 border-2 border-indigo-500 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(99,102,241,0.15)] relative">
+              <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-4">
+                <h2 class="text-indigo-400 font-black uppercase tracking-widest text-base md:text-lg">📢 Итоги последней вылазки</h2>
+                <%= button_to "ЗАКРЫТЬ ОТЧЕТ", game_path(@game), method: :get, class: "text-xs md:text-sm bg-gray-700 text-white font-bold px-4 py-2 rounded-lg hover:bg-gray-600 transition" %>
+              </div>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <% recent_raiders.each do |p| %>
+                  <div class="flex flex-col gap-2 p-4 rounded-xl bg-gray-800 border-l-4 shadow-md <%= p.raid_status == 'dead' ? 'border-red-600' : 'border-green-500' %>">
+                    <div class="font-black text-indigo-300 text-sm md:text-base">
+                      Игрок <%= @game.players.order(:id).index(p) + 1 %>:
+                    </div>
+                    <div class="text-sm md:text-base text-gray-300 leading-snug">
+                      <span class="font-black uppercase text-xs md:text-sm mr-1 <%= p.raid_status == 'dead' ? 'text-red-500 bg-red-900/30 px-2 py-1 rounded' : 'text-green-400 bg-green-900/30 px-2 py-1 rounded' %>">
+                        <%= p.raid_status.humanize %>
+                      </span> 
+                      <%= p.raid_outcome %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
         </div>
         
-        <div class="flex flex-col items-end gap-3">
-          <div class="bg-gray-700 px-4 py-2 rounded-lg border border-gray-600 shadow-inner text-right w-full">
-            <p class="text-gray-400 text-[10px] uppercase font-bold">Код партии</p>
-            <p class="text-xl font-mono font-bold text-white tracking-widest"><%= @game.code %></p>
+        <!-- Правая панель (Статус игры) -->
+        <div class="flex flex-col gap-4 w-full lg:w-80 flex-shrink-0">
+          <div class="bg-gray-700 p-5 rounded-2xl border border-gray-600 shadow-inner text-center lg:text-right">
+            <p class="text-gray-400 text-xs md:text-sm uppercase font-bold tracking-widest mb-1">Код партии</p>
+            <p class="text-3xl md:text-4xl font-mono font-black text-white tracking-widest select-all"><%= @game.code %></p>
           </div>
           
-          <div class="text-right bg-gray-900 p-3 rounded-lg border border-gray-700 w-full">
-            <p class="text-gray-400 text-sm mb-1 uppercase font-bold">Раунд: <span class="text-white text-xl"><%= @game.current_round %> / 5</span></p>
+          <div class="bg-gray-900 p-5 md:p-6 rounded-2xl border border-gray-700 flex flex-col justify-center text-center lg:text-right">
+            <p class="text-gray-400 text-sm md:text-base uppercase font-bold mb-2">Раунд: <span class="text-white text-2xl md:text-3xl ml-2"><%= @game.current_round %> / 5</span></p>
             
             <% if @game.current_round <= 5 %>
               <% if @game.total_remaining_eliminations > 0 %>
-                <p class="text-red-400 text-sm font-bold mt-2">
-                  Изгнать в этом раунде: <span class="text-white text-lg"><%= @game.eliminations_this_round %></span>
-                </p>
-                <p class="text-gray-500 text-[10px] uppercase font-bold mb-3">
-                  Всего лишних до финала: <%= @game.total_remaining_eliminations %>
-                </p>
+                <div class="bg-red-900/20 rounded-xl p-3 mb-4 mt-2 border border-red-900/50">
+                  <p class="text-red-400 text-sm md:text-base font-bold">
+                    Изгнать сейчас: <span class="text-white text-xl md:text-2xl font-black ml-1"><%= @game.eliminations_this_round %></span>
+                  </p>
+                  <p class="text-gray-500 text-xs uppercase font-bold mt-2">
+                    Всего лишних: <%= @game.total_remaining_eliminations %>
+                  </p>
+                </div>
               <% else %>
-                <p class="text-green-500 text-sm font-black mb-3 mt-2 uppercase">Состав идеален!</p>
+                <p class="text-green-500 text-base md:text-lg font-black my-4 uppercase tracking-wider bg-green-900/20 py-2 rounded-xl">Состав идеален!</p>
               <% end %>
 
               <%= button_to "СЛЕДУЮЩИЙ РАУНД", reveal_next_round_game_path(@game), method: :post, 
-                  class: "w-full bg-red-600 hover:bg-red-500 text-white font-black py-2 px-4 rounded shadow-lg transition transform hover:scale-105" %>
+                  class: "w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 px-4 rounded-xl shadow-lg transition-all transform hover:scale-[1.02] text-sm md:text-base tracking-widest" %>
 
             <% else %>
-              <!-- ФИНАЛ: Раунды закончились -->
-              <div class="text-green-500 font-black uppercase text-2xl mt-2 animate-pulse mb-2">ДВЕРИ ЗАКРЫТЫ</div>
+              <!-- ФИНАЛ -->
+              <div class="text-green-500 font-black uppercase text-2xl md:text-3xl mt-2 animate-pulse mb-4">ДВЕРИ ЗАКРЫТЫ</div>
               
               <% if @game.total_remaining_eliminations > 0 %>
-                <p class="text-red-400 text-xs mb-3 font-bold">ОШИБКА: В бункере остались лишние люди! Изгоните еще <%= @game.total_remaining_eliminations %></p>
+                <div class="bg-red-900/30 p-4 rounded-xl border border-red-700 mb-4">
+                  <p class="text-red-400 text-sm font-bold">ОШИБКА: В бункере остались лишние! Изгоните еще <%= @game.total_remaining_eliminations %></p>
+                </div>
               <% else %>
-                <p class="text-gray-300 text-xs mb-3">Группа сформирована. Тайны заперты внутри.</p>
-                <%= link_to "СГЕНЕРИРОВАТЬ ИСТОРИЮ (ИИ)", report_game_path(@game), 
-                    class: "block w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-black py-3 px-4 rounded shadow-lg transition transform hover:scale-105 uppercase tracking-widest" %>
+                <p class="text-gray-300 text-sm md:text-base mb-5 italic">Группа сформирована. Тайны заперты внутри.</p>
+                <%= link_to "ГЕНЕРАЦИЯ ИСТОРИИ", report_game_path(@game), 
+                    class: "block w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-black py-4 px-4 rounded-xl shadow-[0_0_15px_rgba(37,99,235,0.5)] transition-all transform hover:scale-[1.02] uppercase tracking-widest text-sm md:text-base" %>
               <% end %>
-
             <% end %>
           </div>
         </div>
@@ -172,10 +178,9 @@
 
     <%= turbo_stream_from @game %>
 
-    <!-- Список игроков -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <!-- Список карточек игроков (Улучшенная сетка) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 md:gap-6">
       <% @players.each do |player| %>
-        <!-- Вызываем наш новый файл-шаблон для каждого игрока -->
         <%= render "players/host_card", player: player %>
       <% end %>
     </div>
