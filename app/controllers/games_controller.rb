@@ -55,19 +55,22 @@ class GamesController < ApplicationController
 
   def start_raid
     @game = Game.find(params[:id])
-    # Выбираем случайный рейд
     raid = Raid.order("RANDOM()").first
 
-    # Отправляем выбранных игроков (из чекбоксов)
     if params[:raider_ids].present?
-      @game.players.update_all(raid_outcome: nil)
       players = @game.players.where(id: params[:raider_ids])
-      players.update_all(raid_status: "raiding")
+
+      @game.players.update_all(raid_outcome: nil, raid_status: "at_home")
+
+      players.each do |player|
+        player.update!(raid_status: "raiding")
+      end
+
       @game.update!(active_raid_id: raid.id)
 
-      # Обновляем экраны всех, чтобы увидеть, кто ушел
       Turbo::StreamsChannel.broadcast_refresh_to(@game)
-      redirect_to game_path(@game), notice: "Группа отправилась в рейд: #{raid.name}!"
+
+      redirect_to game_path(@game), notice: "Группа отправилась в рейд!"
     else
       redirect_to game_path(@game), alert: "Выберите хотя бы одного добровольца!"
     end

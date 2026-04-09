@@ -3,7 +3,7 @@
 # not a terminal started via bin/rails console! Add "console" to any action or any ERB template view
 # to make the web console appear.
 development:
-  adapter: solid_cable
+  adapter: async
 
 test:
   adapter: test
