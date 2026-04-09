@@ -1,3 +1,20 @@
+<% if player.name.blank? %>
+  <!-- ЭКРАН ВВОДА ИМЕНИ -->
+  <div class="flex flex-col items-center justify-center min-h-[60vh] animate-in zoom-in duration-500">
+    <h1 class="text-3xl font-black text-red-500 mb-2 uppercase tracking-widest">Бункер</h1>
+    <p class="text-gray-400 mb-8 text-center text-sm">Добро пожаловать. Как вас зовут?</p>
+    
+    <%= form_with model: [game, player], class: "w-full space-y-4" do |f| %>
+      <%= f.text_field :name, placeholder: "Ваше имя...", required: true, autocomplete: "off",
+          class: "w-full bg-gray-900 border border-gray-700 text-white rounded-lg py-4 px-4 text-center text-xl focus:ring-red-500 focus:border-red-500 shadow-inner" %>
+      
+      <%= f.submit "ВОЙТИ В ИГРУ", 
+          class: "w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-lg shadow-lg uppercase tracking-widest transition" %>
+    <% end %>
+  </div>
+
+<% else %>
+
 <div id="player_<%= player.id %>_screen" class="min-h-screen bg-black text-white p-4 md:p-8 font-sans pb-24">
   <!-- Расширенный контейнер для ПК -->
   <div class="max-w-5xl mx-auto">
@@ -56,11 +73,23 @@
                 <% if !action_link.used && !player.eliminated %>
                   <%= form_with url: use_game_player_player_action_card_path(game, player, action_link), method: :post, class: "relative z-10" do |f| %>
                     <% if action_card.requires_target %>
+                      <!-- ИСПРАВЛЕННЫЙ RUBY БЛОК ДЛЯ SELECT -->
                       <%= f.select :target_id, 
-                          game.players.where(eliminated: false).map { |p| ["Игрок #{game.players.order(:id).index(p) + 1}", p.id] }, 
-                          {}, class: "w-full bg-black/50 border border-purple-600/50 text-white rounded-xl p-3 text-sm md:text-base mb-3 focus:ring-purple-500 focus:border-purple-500" %>
+                        game.players.where(eliminated: false).map { |p| 
+                          idx = game.players.order(:id).index(p) + 1
+                          display_name = p.name.presence || "Игрок #{idx}"
+                          prof_pc = p.player_cards.joins(:card).find_by(cards: { category: 'profession' })
+                          prof_text = prof_pc&.revealed ? prof_pc.card.name : "Скрыто"
+                          
+                          # Формируем элемент массива [текст, значение]
+                          label_text = "#{display_name} (#{prof_text})"
+                          label_text += " [Вы]" if p == player
+                          [label_text, p.id] 
+                        }, 
+                        { include_blank: "Выберите цель..." }, 
+                        class: "w-full bg-gray-900 border border-purple-800 text-white rounded-xl p-3 text-sm md:text-base mb-3 truncate focus:ring-purple-500 focus:border-purple-500 appearance-none" %>
                     <% end %>
-                    <%= f.submit "ИСПОЛЬЗОВАТЬ", class: "w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-black text-xs md:text-sm tracking-widest transition-all shadow-[0_0_15px_rgba(147,51,234,0.4)] cursor-pointer" %>
+                    <%= f.submit "ИСПОЛЬЗОВАТЬ", data: { turbo_confirm: "Точно применить свойство?" }, class: "w-full py-3 md:py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-black text-xs md:text-sm tracking-widest transition-all shadow-[0_0_15px_rgba(147,51,234,0.4)] cursor-pointer" %>
                   <% end %>
                 <% end %>
               </div>
@@ -150,3 +179,4 @@
     </div>
   </div>
 </div>
+<% end %>

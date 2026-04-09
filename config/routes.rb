@@ -12,7 +12,7 @@ Rails.application.routes.draw do
       get :report
     end
 
-    resources :players, only: [ :show ] do
+    resources :players, only: [ :show, :update ] do
       member do
         post :reveal_biology # Кнопка вскрытия биологии
         post :eliminate

@@ -7,6 +7,24 @@ class PlayersController < ApplicationController
     # мы убеждаемся, что он открыл именно своего игрока из этой игры.
   end
 
+  def update
+    @game = Game.find(params[:game_id])
+    @player = @game.players.find(params[:id])
+
+    if @player.update(name: params[:player][:name])
+      # Как только игрок ввел имя, мгновенно обновляем его карточку на пульте Ведущего
+      Turbo::StreamsChannel.broadcast_replace_to(
+        @game, target: "host_player_#{@player.id}", partial: "players/host_card", locals: { player: @player }
+      )
+      # И обновляем его собственный экран
+      Turbo::StreamsChannel.broadcast_replace_to(
+        @player, target: "player_#{@player.id}_screen", partial: "players/player_screen", locals: { player: @player, game: @game }
+      )
+    end
+
+    redirect_to game_player_path(@game, @player)
+  end
+
   def reveal_biology
     @game = Game.find(params[:game_id])
     @player = @game.players.find(params[:id])

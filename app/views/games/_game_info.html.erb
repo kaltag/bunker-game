@@ -83,25 +83,43 @@
                     <div class="flex flex-wrap gap-2 md:gap-3">
                       <% game.raid_candidates.each do |candidate| %>
                         <div class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow">
-                          Игрок <%= game.players.order(:id).index(candidate) + 1 %> <span class="text-indigo-200 font-normal hidden sm:inline">(<%= candidate.profession&.name %>)</span>
+                          <!-- ЗДЕСЬ ИМЯ -->
+                          <%= candidate.name.presence || "Игрок #{game.players.order(:id).index(candidate) + 1}" %> 
+                          <span class="text-indigo-200 font-normal hidden sm:inline">
+                            (<%= candidate.profession&.name || 'Профессия скрыта' %>)
+                          </span>
                         </div>
                       <% end %>
                     </div>
                   </div>
 
-                  <%= form_with url: start_raid_game_path(game), method: :post, class: "space-y-5" do |f| %>
+<%= form_with url: start_raid_game_path(game), method: :post, class: "space-y-5" do |f| %>
                     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
                       <% game.players.where(eliminated: false).each do |p| %>
-                        <label class="relative flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border border-indigo-900 bg-gray-900/50 cursor-pointer hover:bg-indigo-900/40 hover:border-indigo-400 transition-all group">
-                          <%= check_box_tag "raider_ids[]", p.id, false, class: "absolute top-2 left-2 w-4 h-4 rounded text-indigo-600 bg-gray-800 border-gray-600 focus:ring-indigo-500 focus:ring-offset-gray-900" %>
-                          <div class="text-center mt-2 md:mt-0 w-full">
-                            <p class="text-xs md:text-sm text-gray-400 group-hover:text-white font-medium">Игрок <%= game.players.order(:id).index(p) + 1 %></p>
-                            <p class="text-[10px] md:text-xs font-bold text-indigo-300 truncate w-full mt-1" title="<%= p.profession&.name %>"><%= p.profession&.name %></p>
+                        <!-- Улучшенный UI для мобилок: скрытый чекбокс + peer -->
+                        <label class="relative cursor-pointer group">
+                          <%= check_box_tag "raider_ids[]", p.id, false, class: "peer sr-only" %>
+                          
+                          <!-- Карточка, которая меняет цвет при выборе -->
+                          <div class="flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border-2 border-indigo-900/50 bg-gray-900/50 peer-checked:bg-indigo-600 peer-checked:border-indigo-400 peer-checked:shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all h-full">
+                            
+                            <p class="text-xs md:text-sm font-medium text-gray-300 peer-checked:text-white text-center w-full truncate">
+                              <%= p.name.presence || "Игрок #{game.players.order(:id).index(p) + 1}" %>
+                            </p>
+                            
+                            <p class="text-[10px] md:text-xs font-bold text-indigo-400 peer-checked:text-indigo-200 truncate w-full text-center mt-1" title="<%= p.profession&.name || 'Скрыто' %>">
+                              <%= p.profession&.name || 'Скрыто' %>
+                            </p>
+                            
+                            <!-- Иконка галочки (появляется только если выбрано) -->
+                            <div class="absolute -top-2 -right-2 bg-indigo-400 text-white rounded-full p-1 opacity-0 peer-checked:opacity-100 transition-opacity shadow-lg">
+                              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                            </div>
                           </div>
                         </label>
                       <% end %>
                     </div>
-                    <%= f.submit "ПОДТВЕРДИТЬ СОСТАВ И ОТПРАВИТЬ", class: "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 rounded-xl text-sm md:text-base tracking-widest transition shadow-lg cursor-pointer mt-2" %>
+                    <%= f.submit "ПОДТВЕРДИТЬ СОСТАВ И ОТПРАВИТЬ", class: "w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black py-4 md:py-5 rounded-xl text-sm md:text-base tracking-widest transition shadow-lg cursor-pointer mt-4" %>
                   <% end %>
                 <% end %>
                 <% else %>

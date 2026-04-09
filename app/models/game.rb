@@ -58,7 +58,9 @@ class Game < ApplicationRecord
     prompt += "Происшествие во время выживания: #{threat&.name}. Описание: #{threat&.description}\n\n"
 
     format_player_data = ->(p, i, label) do
-      res = "#{label} #{i+1} (#{p.gender}, #{p.age} лет, #{p.is_infertile ? 'Бесплоден' : 'Способен к размножению'}):\n"
+      d_name = p.name.presence || "Игрок #{i+1}"
+
+      res = "#{label}: #{d_name} (#{p.gender}, #{p.age} лет, #{p.is_infertile ? 'Бесплоден' : 'Способен к размножению'}):\n"
       p.ordered_player_cards.each do |pc|
         # Для выживших помечаем тайны, для изгнанных просто выводим всё (группа о них так и не узнала)
         status = pc.revealed ? "" : "[ТАЙНА, О КОТОРОЙ ГРУППА НЕ УЗНАЛА]"
@@ -76,7 +78,11 @@ class Game < ApplicationRecord
 
     if used_cards.any?
       used_cards.each do |link|
-        prompt += "- Игрок #{players.order(:id).index(link.player) + 1} разыграл карту: '#{link.action_card.name}'.\n"
+        p = link.player
+        idx = players.order(:id).index(p) + 1
+        display_name = p.name.presence || "Игрок #{idx}"
+
+        prompt += "- #{display_name} разыграл карту: '#{link.action_card.name}'.\n"
       end
     else
       prompt += "Спец. карты не использовались.\n"
@@ -92,8 +98,7 @@ class Game < ApplicationRecord
       prompt += "Изгнанных нет.\n\n"
     end
 
-    # СИНЕРГИИ ВНУТРИ БУНКЕРА
-    prompt += "=== АНАЛИЗ СИНЕРГИЙ ВНУТРИ ГРУППЫ ===\n"
+    # 4. Анализ синергий (используем безопасную навигацию &. )
     prompt += "=== ЖЕСТКИЕ ПРАВИЛА ВЗАИМОДЕЙСТВИЯ ===\n"
     prompt += "В этом мире навыки специалистов ГАРАНТИРУЮТ результат. Личные черты характера не могут помешать выполнению профессионального долга.\n"
     survivors.each do |p1|
@@ -101,7 +106,7 @@ class Game < ApplicationRecord
         next if p1 == p2
         # Психология: ПОЛНОЕ ИЗЛЕЧЕНИЕ
         if p1.profession&.tags.to_s.include?("mental_health") && p2.phobia&.tags.to_s.include?("panic")
-          prompt += "- ПРАВИЛО: Психолог (#{p1.profession.name}) ПОЛНОСТЬЮ И УСПЕШНО излечивает фобию '#{p2.phobia.name}' у Игрока #{survivors.index(p2)+1}. Все психологические барьеры для общения и размножения СНЯТЫ.\n"
+          prompt += "- ПРАВИЛО: Психолог (#{p1.profession.name}) ПОЛНОСТЬЮ излечивает фобию '#{p2.phobia.name}' у #{p2.name.presence || 'соседа'}.\n"
         end
 
         # Медицина: ПОЛНОЕ ИЗЛЕЧЕНИЕ
@@ -116,25 +121,28 @@ class Game < ApplicationRecord
       end
     end
 
+    # === ХРОНИКИ ВНЕШНИХ ВЫЛАЗОК (РЕЙДЫ) ===
     prompt += "=== ХРОНИКИ ВНЕШНИХ ВЫЛАЗОК (РЕЙДЫ) ===\n"
     raid_events = players.where.not(raid_status: "at_home")
 
     if raid_events.any?
-    raid_events.each do |p|
-      status_text = case p.raid_status
-      when "returned_triumph" then "Триумфальное возвращение: нашел ценные ресурсы и новые инструкции."
-      when "returned_success" then "Успех: вернулся с полезным багажом."
-      when "returned_empty" then "Неудача: вернулся живым, но с пустыми руками."
-      when "returned_injured" then "Трагедия: вернулся с тяжелыми ранениями/болезнью."
-      when "dead" then "Героическая гибель: не вернулся из вылазки."
+      raid_events.each do |p|
+        idx = players.order(:id).index(p) + 1
+        display_name = p.name.presence || "Игрок #{idx}"
+
+        status_text = case p.raid_status
+        when "returned_triumph" then "Триумфальное возвращение: нашел ценные ресурсы и новые инструкции."
+        when "returned_success" then "Успех: вернулся с полезным багажом."
+        when "returned_empty" then "Неудача: вернулся живым, но с пустыми руками."
+        when "returned_injured" then "Трагедия: вернулся с тяжелыми ранениями/болезнью."
+        when "dead" then "Героическая гибель: не вернулся из вылазки."
+        end
+        prompt += "- #{display_name} (#{p.profession&.name || 'Профессия скрыта'}): #{status_text}\n"
       end
-      prompt += "- Игрок #{players.index(p)+1} (#{p.profession&.name}): #{status_text}\n"
-    end
     else
-    prompt += "За всю игру группа ни разу не рискнула выйти наружу.\n"
+      prompt += "За всю игру группа ни разу не рискнула выйти наружу.\n"
     end
 
-    prompt += "\n=== ТВОЯ ЗАДАЧА ===\n"
     prompt += "\n=== ТВОЯ ЗАДАЧА КАК СЦЕНАРИСТА ===\n"
     prompt += "1. Опиши быт в бункере. Как вскрывшиеся ТАЙНЫ (которые не знали при входе) изменили отношение людей друг к другу?\n"
     prompt += "2. Опиши, как группа справилась с происшествием: '#{threat&.description}'. Использовали ли они особенности бункера (например, #{bunker_features.map { |f| f['name'] }.join(' и ')}) в сюжете. и/или навыки (СИНЕРГИИ)?\n"
