@@ -111,6 +111,36 @@ class PlayerActionCardsController < ApplicationController
           end
         end
 
+      when "increase_capacity"
+        @game.increment!(:bunker_capacity)
+
+      when "decrease_capacity"
+        @game.decrement!(:bunker_capacity) if @game.bunker_capacity > 1
+
+      when "cure_infertility"
+        target.update!(is_infertile: false) if target
+
+      when "make_young"
+        if target
+          new_age = rand(18..25)
+          target.update!(age: new_age, is_infertile: false)
+        end
+
+      when "reveal_all"
+        if target
+          target.player_cards.update_all(revealed: true)
+          target.update!(biology_revealed: true)
+        end
+
+      when "steal_luggage"
+        if target
+          target_luggage = target.player_cards.joins(:card).find_by(cards: { category: "luggage" })
+          if target_luggage
+            # Меняем владельца карты багажа на текущего игрока
+            target_luggage.update!(player: @player, revealed: true)
+          end
+        end
+
         # СОЦИАЛЬНЫЕ КАРТЫ: Ничего в базе не меняют, только помечаются использованными.
         # Игроки отыгрывают их вживую за столом (например, "Громкий голос").
       end
