@@ -1,10 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru" class="scroll-smooth">
   <head>
-    <title><%= content_for(:title) || "Bunker App" %></title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title><%= content_for(:title) || "Бункер" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#111827">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
     <%= action_cable_meta_tag %>
@@ -25,8 +27,8 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
-    <main class="container mx-auto mt-28 px-5 flex">
+  <body class="bg-gray-950 text-white antialiased min-h-dvh">
+    <main class="min-h-dvh">
       <%= yield %>
     </main>
   </body>

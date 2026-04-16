@@ -1,21 +1,20 @@
-<div class="min-h-screen bg-gray-900 flex flex-col items-center justify-center text-white p-4 md:p-8">
-  <div class="max-w-lg lg:max-w-xl w-full bg-gray-800 rounded-2xl shadow-2xl p-6 md:p-10 text-center border border-gray-700 transition-all">
-    <h1 class="text-5xl lg:text-6xl font-extrabold text-red-500 mb-3 uppercase tracking-tighter drop-shadow-lg">БУНКЕР</h1>
-    <p class="text-gray-400 mb-8 md:text-lg">Цифровой помощник ведущего</p>
+<div class="min-h-dvh bg-gray-950 flex flex-col items-center justify-center px-4 py-8 safe-px safe-pb">
+  <div class="max-w-md sm:max-w-lg w-full panel p-6 sm:p-8 md:p-10 text-center">
+    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-red-500 mb-2 uppercase tracking-tighter drop-shadow-lg">БУНКЕР</h1>
+    <p class="text-gray-400 mb-8 text-sm sm:text-base md:text-lg">Цифровой помощник ведущего</p>
 
-    <%= form_with url: games_path, method: :post, local: true, class: "space-y-6 md:space-y-8" do |f| %>
+    <%= form_with url: games_path, method: :post, local: true, class: "space-y-6" do |f| %>
       <div class="text-left">
-        <label class="block text-sm md:text-base font-medium text-gray-300 mb-2 uppercase tracking-wide">Количество игроков:</label>
-        <%= f.select :player_count, (6..16).to_a, { selected: 8 }, 
-            class: "w-full bg-gray-700 border-gray-600 text-white text-lg rounded-xl py-4 px-5 focus:ring-red-500 focus:border-red-500 transition-shadow cursor-pointer shadow-inner" %>
+        <label class="block text-sm font-medium text-gray-300 mb-2 uppercase tracking-wide">Количество игроков:</label>
+        <%= f.select :player_count, (6..16).to_a, { selected: 8 },
+            class: "w-full bg-gray-700 border border-gray-600 text-white text-lg rounded-xl py-4 px-5 focus:ring-red-500 focus:border-red-500 transition-shadow cursor-pointer shadow-inner" %>
       </div>
 
-      <p class="text-sm text-gray-500 italic bg-gray-900/50 p-4 rounded-lg border border-gray-700/50">
+      <p class="text-sm text-gray-500 italic bg-gray-900/50 p-4 rounded-xl border border-gray-700/50 leading-relaxed">
         Система сбалансирует персонажей, синергии и биологические статы под выбранное количество людей.
       </p>
 
-      <%= f.submit "СГЕНЕРИРОВАТЬ ПАРТИЮ", 
-          class: "w-full bg-red-600 hover:bg-red-500 text-white font-black text-lg py-5 px-6 rounded-xl transition duration-300 cursor-pointer shadow-lg hover:shadow-red-500/20 uppercase tracking-widest transform hover:-translate-y-1" %>
+      <%= f.submit "СГЕНЕРИРОВАТЬ ПАРТИЮ", class: "btn-primary w-full text-base sm:text-lg py-5" %>
     <% end %>
   </div>
 </div>

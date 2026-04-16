@@ -1,29 +1,28 @@
-<div class="min-h-screen bg-gray-900 text-white p-4 md:p-8 font-sans flex flex-col items-center">
-  <div class="max-w-5xl w-full">
-    
-    <div class="text-center mb-8 md:mb-12">
-      <h1 class="text-4xl md:text-5xl font-extrabold text-red-500 tracking-tighter uppercase drop-shadow-md">Итоги Партии #<%= @game.code %></h1>
-      <p class="text-gray-400 mt-3 md:text-lg">Скопируйте этот текст и отправьте его в ChatGPT или Claude.</p>
+<div class="min-h-dvh bg-gray-950 text-white p-3 sm:p-4 md:p-6 lg:p-8 font-sans flex flex-col items-center safe-px safe-pb">
+  <div class="max-w-4xl w-full">
+
+    <div class="text-center mb-6 sm:mb-8 md:mb-12">
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-red-500 tracking-tighter uppercase drop-shadow-md">Итоги Партии #<%= @game.code %></h1>
+      <p class="text-gray-400 mt-2 sm:mt-3 text-sm md:text-lg">Скопируйте этот текст и отправьте его в ChatGPT или Claude.</p>
     </div>
 
-    <div class="bg-gray-800 rounded-2xl border border-gray-700 p-6 md:p-8 shadow-2xl">
+    <div class="panel p-4 sm:p-6 md:p-8">
       <!-- Поле с логом -->
-      <textarea id="ai-prompt" class="w-full h-[50vh] bg-gray-900 text-green-400 font-mono text-sm md:text-base p-6 rounded-xl border border-gray-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y mb-6 leading-relaxed shadow-inner" readonly><%= @game.ai_report %></textarea>
+      <textarea id="ai-prompt" class="w-full h-[40vh] sm:h-[45vh] md:h-[50vh] bg-gray-900 text-green-400 font-mono text-xs sm:text-sm md:text-base p-4 sm:p-5 md:p-6 rounded-xl border border-gray-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y mb-5 sm:mb-6 leading-relaxed shadow-inner" readonly><%= @game.ai_report %></textarea>
 
       <!-- Кнопки управления -->
-      <div class="flex flex-col sm:flex-row gap-4">
-        <button onclick="copyPrompt()" id="copy-btn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-black py-4 md:py-5 rounded-xl uppercase tracking-widest transition-all duration-300 shadow-lg hover:shadow-blue-500/20">
+      <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <button onclick="copyPrompt()" id="copy-btn" class="btn-action flex-1 text-center">
           Скопировать для ИИ
         </button>
-        
-        <%= link_to "Сыграть снова", root_path, class: "flex-1 flex items-center justify-center text-center bg-gray-700 hover:bg-gray-600 text-white font-bold py-4 md:py-5 rounded-xl uppercase tracking-widest transition-all duration-300 shadow-lg" %>
+
+        <%= link_to "Сыграть снова", root_path, class: "btn-secondary flex-1 text-center flex items-center justify-center" %>
       </div>
     </div>
-    
+
   </div>
 </div>
 
-<!-- Скрипт остается без изменений -->
 <script>
   function copyPrompt() {
     const textarea = document.getElementById("ai-prompt");

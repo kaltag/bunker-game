@@ -1,55 +1,53 @@
 <% if player.name.blank? %>
   <!-- ЭКРАН ВВОДА ИМЕНИ -->
-  <div class="flex flex-col items-center justify-center min-h-[60vh] animate-in zoom-in duration-500">
-    <h1 class="text-3xl font-black text-red-500 mb-2 uppercase tracking-widest">Бункер</h1>
-    <p class="text-gray-400 mb-8 text-center text-sm">Добро пожаловать. Как вас зовут?</p>
-    
-    <%= form_with model: [game, player], class: "w-full space-y-4" do |f| %>
+  <div class="flex flex-col items-center justify-center min-h-dvh px-4 safe-px safe-pb">
+    <h1 class="text-3xl sm:text-4xl font-black text-red-500 mb-2 uppercase tracking-widest">Бункер</h1>
+    <p class="text-gray-400 mb-8 text-center text-sm sm:text-base">Добро пожаловать. Как вас зовут?</p>
+
+    <%= form_with model: [game, player], class: "w-full max-w-sm space-y-4" do |f| %>
       <%= f.text_field :name, placeholder: "Ваше имя...", required: true, autocomplete: "off",
-          class: "w-full bg-gray-900 border border-gray-700 text-white rounded-lg py-4 px-4 text-center text-xl focus:ring-red-500 focus:border-red-500 shadow-inner" %>
-      
-      <%= f.submit "ВОЙТИ В ИГРУ", 
-          class: "w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-lg shadow-lg uppercase tracking-widest transition" %>
+          class: "w-full bg-gray-900 border border-gray-700 text-white rounded-xl py-4 px-4 text-center text-lg sm:text-xl focus:ring-red-500 focus:border-red-500 shadow-inner" %>
+
+      <%= f.submit "ВОЙТИ В ИГРУ", class: "btn-primary w-full" %>
     <% end %>
   </div>
 
 <% else %>
 
-<div id="<%= dom_id(player, :screen) %>" class="min-h-screen bg-black text-white p-4 md:p-8 font-sans pb-24">
-  <!-- Расширенный контейнер для ПК -->
+<div id="<%= dom_id(player, :screen) %>" class="min-h-dvh bg-gray-950 text-white p-3 sm:p-4 md:p-6 lg:p-8 font-sans pb-20 safe-px safe-pb">
   <div class="max-w-5xl mx-auto">
-    
+
     <% if player.eliminated %>
-      <div class="bg-red-600 text-white text-center p-6 md:p-8 rounded-2xl font-black text-3xl md:text-5xl mb-8 shadow-2xl uppercase tracking-widest border-4 border-red-800 animate-pulse">
+      <div class="bg-red-600 text-white text-center p-5 sm:p-6 md:p-8 rounded-2xl font-black text-2xl sm:text-3xl md:text-5xl mb-6 md:mb-8 shadow-2xl uppercase tracking-widest border-4 border-red-800 animate-pulse">
         ВЫ ИЗГНАНЫ
       </div>
-      <p class="text-center text-gray-400 text-sm md:text-lg mb-8 max-w-lg mx-auto">Вы больше не можете вскрывать карты. Ваша игра окончена.</p>
+      <p class="text-center text-gray-400 text-sm md:text-lg mb-6 md:mb-8 max-w-lg mx-auto">Вы больше не можете вскрывать карты. Ваша игра окончена.</p>
     <% else %>
-      <div class="text-center mb-8 md:mb-10">
-        <h1 class="text-4xl md:text-5xl font-extrabold text-red-500 uppercase tracking-tight drop-shadow-md">Ваше Досье</h1>
+      <div class="text-center mb-6 sm:mb-8 md:mb-10">
+        <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-red-500 uppercase tracking-tight drop-shadow-md">Ваше Досье</h1>
         <p class="text-sm md:text-base text-gray-400 mt-2">Тщательно выбирайте, что вскрыть в этом раунде!</p>
       </div>
     <% end %>
 
     <!-- СООБЩЕНИЕ О РЕЗУЛЬТАТЕ РЕЙДА -->
     <% if player.raid_outcome.present? && player.raid_status != 'raiding' %>
-      <div class="mb-8 p-6 rounded-2xl border-2 shadow-2xl <%= player.raid_status == 'dead' ? 'bg-red-900/90 border-red-500' : 'bg-indigo-900/90 border-indigo-500' %> animate-bounce">
+      <div class="mb-6 md:mb-8 p-5 sm:p-6 rounded-2xl border-2 shadow-2xl <%= player.raid_status == 'dead' ? 'bg-red-900/90 border-red-500' : 'bg-indigo-900/90 border-indigo-500' %>">
         <h3 class="text-sm md:text-base font-black uppercase tracking-widest mb-2 opacity-80 text-white">Результат вылазки:</h3>
-        <p class="text-xl md:text-2xl font-bold leading-tight text-white"><%= player.raid_outcome %></p>
+        <p class="text-lg sm:text-xl md:text-2xl font-bold leading-tight text-white"><%= player.raid_outcome %></p>
         <p class="text-xs md:text-sm mt-3 text-white/50 italic text-right">Это сообщение исчезнет в следующем раунде</p>
       </div>
     <% end %>
 
-    <!-- CSS Grid: Делим экран на две колонки на ПК (lg:grid-cols-12) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-      
+    <!-- Двухколоночный layout на больших экранах -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 md:gap-6 lg:gap-8">
+
       <!-- ЛЕВАЯ КОЛОНКА (Инфо, Особые условия, Биология) -->
-      <div class="lg:col-span-4 space-y-6">
-        
+      <div class="lg:col-span-4 space-y-5 md:space-y-6">
+
         <% unless player.eliminated %>
-          <div class="bg-gray-800 p-5 rounded-2xl text-center border border-gray-700 shadow-lg flex flex-col items-center justify-center">
-            <span class="text-gray-400 text-xs md:text-sm uppercase font-bold tracking-widest mb-1">Доступно вскрытий:</span>
-            <span class="text-blue-400 font-black text-4xl md:text-5xl drop-shadow-md">
+          <div class="panel p-4 sm:p-5 text-center flex flex-col items-center justify-center">
+            <span class="text-gray-400 text-xs sm:text-sm uppercase font-bold tracking-widest mb-1">Доступно вскрытий</span>
+            <span class="text-blue-400 font-black text-3xl sm:text-4xl md:text-5xl drop-shadow-md">
               <%= [0, (game.current_round + 1) - player.total_revealed_count].max %>
             </span>
           </div>
@@ -58,22 +56,21 @@
         <!-- Особые условия -->
         <% if player.player_action_cards.any? %>
           <div class="space-y-4">
-            <h2 class="text-sm md:text-base font-black text-purple-400 uppercase tracking-[0.2em] ml-2">Особые условия</h2>
+            <h2 class="text-sm md:text-base font-black text-purple-400 uppercase tracking-[0.15em] sm:tracking-[0.2em] ml-1">Особые условия</h2>
             <% player.player_action_cards.each do |action_link| %>
               <% action_card = action_link.action_card %>
-              <div class="bg-purple-900/30 rounded-2xl p-5 border border-purple-700/50 shadow-xl relative overflow-hidden">
+              <div class="bg-purple-900/30 rounded-2xl p-4 sm:p-5 border border-purple-700/50 shadow-xl relative overflow-hidden">
                 <div class="flex flex-col mb-3 relative z-10">
                   <p class="text-base md:text-lg font-bold text-purple-100 uppercase leading-tight mb-2"><%= action_card.name %></p>
                   <% if action_link.used %>
                     <span class="self-start text-[10px] md:text-xs bg-gray-600/80 text-white px-3 py-1 rounded-full font-bold tracking-wider">ИСПОЛЬЗОВАНО</span>
                   <% end %>
                 </div>
-                <p class="text-sm md:text-base text-purple-200/80 mb-5 relative z-10 leading-relaxed"><%= action_card.description %></p>
+                <p class="text-sm md:text-base text-purple-200/80 mb-4 relative z-10 leading-relaxed"><%= action_card.description %></p>
 
                 <% if !action_link.used && !player.eliminated %>
                   <%= form_with url: use_game_player_player_action_card_path(game, player, action_link), method: :post, class: "relative z-10" do |f| %>
                     <% if action_card.requires_target %>
-                      <!-- ИСПРАВЛЕННЫЙ RUBY БЛОК ДЛЯ SELECT -->
                       <%= f.select :target_id,
                         game.players.where(eliminated: false).map { |p|
                           prof_pc = p.player_cards.joins(:card).find_by(cards: { category: 'profession' })
@@ -82,10 +79,10 @@
                           label_text += " [Вы]" if p == player
                           [label_text, p.id]
                         },
-                        { include_blank: "Выберите цель..." }, 
-                        class: "w-full bg-gray-900 border border-purple-800 text-white rounded-xl p-3 text-sm md:text-base mb-3 truncate focus:ring-purple-500 focus:border-purple-500 appearance-none" %>
+                        { include_blank: "Выберите цель..." },
+                        class: "w-full bg-gray-900 border border-purple-800 text-white rounded-xl p-3 text-sm md:text-base mb-3 truncate focus:ring-purple-500 focus:border-purple-500" %>
                     <% end %>
-                    <%= f.submit "ИСПОЛЬЗОВАТЬ", data: { turbo_confirm: "Точно применить свойство?" }, class: "w-full py-3 md:py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-black text-xs md:text-sm tracking-widest transition-all shadow-[0_0_15px_rgba(147,51,234,0.4)] cursor-pointer" %>
+                    <%= f.submit "ИСПОЛЬЗОВАТЬ", data: { turbo_confirm: "Точно применить свойство?" }, class: "btn-game w-full bg-purple-600 hover:bg-purple-500 text-white py-3 md:py-4 text-xs md:text-sm shadow-[0_0_15px_rgba(147,51,234,0.4)]" %>
                   <% end %>
                 <% end %>
               </div>
@@ -94,20 +91,26 @@
         <% end %>
 
         <!-- Биология -->
-        <div class="bg-gray-800 rounded-2xl p-6 border border-gray-700 shadow-lg">
-          <div class="flex justify-between items-center mb-5 border-b border-gray-700 pb-4">
-            <h2 class="text-xl md:text-2xl font-black text-gray-200 uppercase tracking-wide">Биология</h2>
+        <div class="panel p-4 sm:p-5 md:p-6">
+          <div class="flex justify-between items-center mb-4 sm:mb-5 border-b border-gray-700 pb-3 sm:pb-4 gap-2">
+            <h2 class="text-lg sm:text-xl md:text-2xl font-black text-gray-200 uppercase tracking-wide">Биология</h2>
             <% if player.biology_revealed %>
-              <span class="text-[10px] md:text-xs bg-green-600 text-white px-3 py-1 rounded-full font-black tracking-widest shadow-sm">ВСКРЫТО</span>
+              <span class="text-[10px] md:text-xs bg-green-600 text-white px-3 py-1 rounded-full font-black tracking-widest shadow-sm shrink-0">ВСКРЫТО</span>
             <% end %>
           </div>
-          
-          <div class="grid grid-cols-2 gap-4 text-base mb-6">
-            <div class="bg-gray-900/50 p-3 rounded-xl border border-gray-700/50"><span class="text-gray-500 block text-xs md:text-sm uppercase font-bold mb-1">Пол</span><span class="font-bold text-lg text-white"><%= player.gender %></span></div>
-            <div class="bg-gray-900/50 p-3 rounded-xl border border-gray-700/50"><span class="text-gray-500 block text-xs md:text-sm uppercase font-bold mb-1">Возраст</span><span class="font-bold text-lg text-white"><%= player.age %></span></div>
-            <div class="col-span-2 bg-gray-900/50 p-4 rounded-xl border border-gray-700/50 text-center">
-              <span class="text-gray-500 block text-xs md:text-sm uppercase font-bold mb-1">Репродукция</span>
-              <span class="text-lg md:text-xl font-black <%= player.is_infertile ? 'text-red-400' : 'text-green-400' %>">
+
+          <div class="grid grid-cols-2 gap-3 sm:gap-4 text-base mb-5 sm:mb-6">
+            <div class="bg-gray-900/50 p-3 rounded-xl border border-gray-700/50">
+              <span class="text-gray-500 block text-[11px] sm:text-xs md:text-sm uppercase font-bold mb-1">Пол</span>
+              <span class="font-bold text-base sm:text-lg text-white"><%= player.gender %></span>
+            </div>
+            <div class="bg-gray-900/50 p-3 rounded-xl border border-gray-700/50">
+              <span class="text-gray-500 block text-[11px] sm:text-xs md:text-sm uppercase font-bold mb-1">Возраст</span>
+              <span class="font-bold text-base sm:text-lg text-white"><%= player.age %></span>
+            </div>
+            <div class="col-span-2 bg-gray-900/50 p-3 sm:p-4 rounded-xl border border-gray-700/50 text-center">
+              <span class="text-gray-500 block text-[11px] sm:text-xs md:text-sm uppercase font-bold mb-1">Репродукция</span>
+              <span class="text-base sm:text-lg md:text-xl font-black <%= player.is_infertile ? 'text-red-400' : 'text-green-400' %>">
                 <%= player.is_infertile ? 'Бесплодие' : 'Способен к деторождению' %>
               </span>
             </div>
@@ -115,55 +118,55 @@
 
           <% unless player.biology_revealed %>
             <% if player.can_reveal_more? %>
-              <%= button_to "Вскрыть всем", reveal_biology_game_player_path(game, player), method: :post, 
-                  class: "w-full py-4 bg-blue-600 hover:bg-blue-500 text-white uppercase tracking-widest rounded-xl font-black text-sm md:text-base shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all" %>
+              <%= button_to "Вскрыть всем", reveal_biology_game_player_path(game, player), method: :post,
+                  class: "btn-action w-full" %>
             <% else %>
-              <p class="text-sm text-red-400 text-center font-bold bg-red-900/20 py-3 rounded-xl border border-red-900/50 uppercase tracking-wide">Лимит вскрытий исчерпан</p>
+              <p class="text-xs sm:text-sm text-red-400 text-center font-bold bg-red-900/20 py-3 rounded-xl border border-red-900/50 uppercase tracking-wide">Лимит вскрытий исчерпан</p>
             <% end %>
           <% end %>
         </div>
 
       </div>
 
-      <!-- ПРАВАЯ КОЛОНКА (Игровые Карты - выстраиваются в сетку на ПК) -->
+      <!-- ПРАВАЯ КОЛОНКА (Игровые Карты) -->
       <div class="lg:col-span-8">
-        <h2 class="text-sm md:text-base font-black text-gray-500 uppercase tracking-[0.2em] ml-2 mb-4 hidden lg:block">Карты Характеристик</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <h2 class="text-sm md:text-base font-black text-gray-500 uppercase tracking-[0.15em] sm:tracking-[0.2em] ml-1 mb-4 hidden lg:block">Карты Характеристик</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
           <% player.ordered_player_cards.each do |pc| %>
-            <div id="<%= dom_id(pc, :card) %>" class="bg-gray-800 rounded-2xl p-6 border-l-[6px] shadow-lg flex flex-col <%= pc.revealed ? 'border-green-500 bg-gray-800/80' : 'border-blue-500 hover:border-blue-400 transition-colors' %>">
-              
-              <div class="flex justify-between items-start mb-3">
-                <p class="text-xs md:text-sm text-gray-400 uppercase font-black tracking-widest"><%= pc.card.category %></p>
+            <div id="<%= dom_id(pc, :card) %>" class="panel p-4 sm:p-5 md:p-6 border-l-[5px] sm:border-l-[6px] flex flex-col <%= pc.revealed ? 'border-green-500 bg-gray-800/80' : 'border-blue-500 hover:border-blue-400 transition-colors' %>">
+
+              <div class="flex justify-between items-start mb-2 sm:mb-3 gap-2">
+                <p class="text-[11px] sm:text-xs md:text-sm text-gray-400 uppercase font-black tracking-widest"><%= pc.card.category %></p>
                 <% if pc.revealed %>
-                  <span class="text-[10px] md:text-xs bg-green-600 text-white px-3 py-1 rounded-full font-black tracking-widest shadow-sm">ВСКРЫТО</span>
+                  <span class="text-[10px] md:text-xs bg-green-600 text-white px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full font-black tracking-widest shadow-sm shrink-0">ВСКРЫТО</span>
                 <% end %>
               </div>
-              
-              <p class="text-2xl md:text-3xl font-black text-white leading-tight mb-2">
+
+              <p class="text-xl sm:text-2xl md:text-3xl font-black text-white leading-tight mb-2">
                 <%= pc.card.name %>
               </p>
 
-              <div class="flex flex-wrap gap-2 mb-3">
+              <div class="flex flex-wrap gap-1.5 sm:gap-2 mb-2 sm:mb-3">
                 <% if pc.card.category == 'profession' %>
-                  <span class="text-sm md:text-base font-bold text-yellow-500 bg-yellow-900/20 px-2 py-1 rounded-lg">Стаж: <%= player.profession_experience %> л.</span>
+                  <span class="text-xs sm:text-sm md:text-base font-bold text-yellow-500 bg-yellow-900/20 px-2 py-0.5 sm:py-1 rounded-lg">Стаж: <%= player.profession_experience %> л.</span>
                 <% end %>
                 <% if pc.card.category == 'hobby' %>
-                  <span class="text-sm md:text-base font-bold text-green-400 bg-green-900/20 px-2 py-1 rounded-lg">Стаж: <%= player.hobby_experience %> л.</span>
+                  <span class="text-xs sm:text-sm md:text-base font-bold text-green-400 bg-green-900/20 px-2 py-0.5 sm:py-1 rounded-lg">Стаж: <%= player.hobby_experience %> л.</span>
                 <% end %>
                 <% if pc.card.category == 'health' && pc.severity %>
-                  <span class="text-sm md:text-base font-black text-red-400 bg-red-900/20 px-2 py-1 rounded-lg">Тяжесть: <%= pc.severity %>%</span>
+                  <span class="text-xs sm:text-sm md:text-base font-black text-red-400 bg-red-900/20 px-2 py-0.5 sm:py-1 rounded-lg">Тяжесть: <%= pc.severity %>%</span>
                 <% end %>
               </div>
 
-              <p class="text-gray-300 text-sm md:text-base mt-2 leading-relaxed flex-grow"><%= pc.card.description %></p>
-              
-              <div class="mt-6 pt-4 border-t border-gray-700/50">
+              <p class="text-gray-300 text-sm md:text-base mt-1 sm:mt-2 leading-relaxed grow"><%= pc.card.description %></p>
+
+              <div class="mt-4 sm:mt-5 md:mt-6 pt-3 sm:pt-4 border-t border-gray-700/50">
                 <% unless pc.revealed %>
                   <% if player.can_reveal_more? %>
-                    <%= button_to "Вскрыть всем", reveal_game_player_player_card_path(game, player, pc), method: :post, 
-                        class: "w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-black text-sm md:text-base uppercase tracking-widest shadow-[0_0_15px_rgba(37,99,235,0.4)] transition-all" %>
+                    <%= button_to "Вскрыть всем", reveal_game_player_player_card_path(game, player, pc), method: :post,
+                        class: "btn-action w-full" %>
                   <% else %>
-                    <p class="text-xs md:text-sm text-red-400 font-bold text-center bg-red-900/20 py-3 rounded-xl uppercase tracking-wide">Лимит вскрытий исчерпан</p>
+                    <p class="text-xs sm:text-sm text-red-400 font-bold text-center bg-red-900/20 py-3 rounded-xl uppercase tracking-wide">Лимит вскрытий исчерпан</p>
                   <% end %>
                 <% end %>
               </div>
@@ -171,7 +174,7 @@
           <% end %>
         </div>
       </div>
-      
+
     </div>
   </div>
 </div>
