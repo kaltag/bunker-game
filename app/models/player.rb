@@ -1,8 +1,21 @@
 class Player < ApplicationRecord
+  PLAYER_COLORS = %w[
+    #EF4444 #F97316 #EAB308 #22C55E #14B8A6 #3B82F6
+    #8B5CF6 #EC4899 #F43F5E #06B6D4 #84CC16 #A855F7
+    #D946EF #0EA5E9 #10B981 #F59E0B
+  ].freeze
+
+  AVATAR_EMOJIS = %w[
+    😀 😎 🤠 👻 🤖 🦊 🐱 🐶 🦁 🐸
+    🎃 👽 🧙 🦄 🐧 🐼 🦉 🐲 🎅 🥷
+  ].freeze
+
   belongs_to :game, touch: true
   has_many :player_cards, dependent: :destroy
   has_many :cards, through: :player_cards
   has_many :player_action_cards, dependent: :destroy
+  has_many :game_events, dependent: :nullify
+  has_many :targeted_events, class_name: "GameEvent", foreign_key: :target_player_id, dependent: :nullify
 
   validates :name, length: { in: 2..30 }, allow_blank: true
 

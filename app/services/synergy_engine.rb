@@ -4,6 +4,9 @@
 # GameGenerator вызывает SynergyEngine.apply(players, cards_pool, catastrophe_tags)
 # и получает список сработавших синергий.
 #
+# ВАЖНО: синергии используют ТЕГИ для поиска карт, а не конкретные имена.
+# Это гарантирует разнообразие — одна синергия даёт разные карты каждую партию.
+#
 # Типы синергий:
 #   :pair         — два игрока с комплементарными профессиями → дать карту одному
 #   :inject       — профессия/хобби одного → дать карту ДРУГОМУ игроку
@@ -13,12 +16,12 @@
 #   :cross_fact   — дать связанные факты ДВУМ разным игрокам
 #
 class SynergyEngine
-  # Максимум синергий за партию (% от игроков)
-  MAX_SYNERGY_RATIO = 0.6 # 60% от числа игроков, т.е. ~5 для 8 игроков
+  # Максимум синергий за партию — 40% от числа игроков (2-3 для 6, 3 для 8)
+  MAX_SYNERGY_RATIO = 0.4
 
   REGISTRY = [
     # ================================================================
-    # ПАРНЫЕ ПРОФЕССИИ
+    # ПАРНЫЕ ПРОФЕССИИ (два игрока усиливают друг друга)
     # ================================================================
     {
       name: "Медцентр", type: :pair,
@@ -37,163 +40,142 @@ class SynergyEngine
     {
       name: "Оборона", type: :pair,
       trigger: { profession_tag: "security" },
-      partner: { profession_tag: "security" }, # второй с тем же тегом
+      partner: { profession_tag: "security" },
       give_to: :trigger, give_category: "luggage",
-      give_tags: %w[weapon]
+      give_tags: %w[weapon security]
     },
     {
       name: "Лаборатория", type: :pair,
       trigger: { profession_tag: "science" },
       partner: { profession_tag: "technical" },
       give_to: :partner, give_category: "luggage",
-      give_tags: %w[technical software]
+      give_tags: %w[technical software science]
     },
     {
       name: "Бригада", type: :pair,
       trigger: { profession_tag: "technical" },
       partner: { profession_tag: "building" },
       give_to: :partner, give_category: "luggage",
-      give_tags: %w[technical building]
-    },
-    {
-      name: "Контрразведка", type: :pair,
-      trigger: { profession_tag: "security" },
-      partner: { profession_tag: "software" },
-      give_to: :partner, give_category: "fact",
-      give_tags: %w[info technical]
+      give_tags: %w[technical building repair]
     },
     {
       name: "Дипломатия", type: :pair,
       trigger: { profession_tag: "mental_health" },
       partner: { profession_tag: "social" },
       give_to: :partner, give_category: "hobby",
-      give_tags: %w[social mental_health]
+      give_tags: %w[social mental_health mental]
     },
     {
       name: "Егеря", type: :pair,
       trigger: { profession_tag: "hunting" },
       partner: { profession_tag: "nature" },
       give_to: :trigger, give_category: "hobby",
-      give_tags: %w[survival hunting]
+      give_tags: %w[survival hunting nature]
     },
 
     # ================================================================
-    # ПРОФЕССИЯ ОДНОГО → КАРТА ДРУГОМУ (конфликты и связи)
+    # ПРОФЕССИЯ → КАРТА ДРУГОМУ (конфликты и связи)
+    # Все используют ТЕГИ — каждый раз разная карта
     # ================================================================
     {
-      name: "Детектив и маньяк", type: :inject,
-      trigger: { profession_tag: "security" },
-      give_category: "fact", give_tags: %w[criminal danger]
-    },
-    {
-      name: "Врач и антипрививочник", type: :inject,
-      trigger: { profession_tag: "medical" },
-      give_category: "phobia", give_card_name: "Иатрофобия"
-    },
-    {
-      name: "Психолог и параноик", type: :inject,
-      trigger: { profession_tag: "mental_health" },
-      give_category: "health", give_card_name: "Мания преследования"
-    },
-    {
-      name: "Врач + Излечимый больной", type: :inject,
+      name: "Врач и пациент", type: :inject,
       trigger: { profession_tag: "medical" },
       give_category: "health", give_filter: :curable_disease
     },
     {
-      name: "Психолог + Тяжёлая фобия", type: :inject,
+      name: "Психолог и фобия", type: :inject,
       trigger: { profession_tag: "mental_health" },
       give_category: "phobia", give_tags: %w[panic]
     },
     {
-      name: "Производитель алкоголя + Алкоголик", type: :inject,
+      name: "Детектив и подозреваемый", type: :inject,
+      trigger: { profession_tag: "security" },
+      give_category: "fact", give_tags: %w[criminal danger]
+    },
+    {
+      name: "Алкогольная зависимость", type: :inject,
       trigger: { profession_tag: "alcohol" },
-      give_category: "health", give_card_name: "Алкоголизм"
+      give_category: "health", give_tags: %w[addiction]
     },
     {
-      name: "Химик + Наркозависимый", type: :inject,
+      name: "Химик и побочный эффект", type: :inject,
       trigger: { any_profession_tag: %w[chemical science] },
-      give_category: "health", give_card_name_contains: "Зависимость"
+      give_category: "health", give_tags: %w[disease mental]
     },
     {
-      name: "Священник и сектант", type: :inject,
+      name: "Священник и грешник", type: :inject,
       trigger: { profession_tag: "social" },
-      give_category: "fact", give_tags: %w[cult mental]
+      give_category: "fact", give_tags: %w[cult strange mental]
     },
 
     # ================================================================
-    # ПРОФЕССИЯ → ДАТЬ ПРЕДМЕТ (себе или партнёру)
+    # ПРОФЕССИЯ → ПРЕДМЕТ (себе или партнёру)
     # ================================================================
     {
-      name: "Фермер + Семена", type: :inject,
+      name: "Фермер + запасы", type: :inject,
       trigger: { profession_tag: "agriculture" },
       give_category: "luggage", give_tags: %w[farming food]
     },
     {
-      name: "Инженер + Инструменты", type: :inject,
+      name: "Инженер + инструменты", type: :inject,
       trigger: { profession_tag: "technical" },
       give_category: "luggage", give_tags: %w[repair technical]
     },
     {
-      name: "Повар + Еда", type: :inject,
+      name: "Повар + провизия", type: :inject,
       trigger: { profession_tag: "food" },
       give_category: "luggage", give_tags: %w[food]
     },
     {
-      name: "Военный + Оружие", type: :inject,
+      name: "Военный + снаряжение", type: :inject,
       trigger: { profession_tag: "security" },
-      give_to_self_chance: 50, # 50% себе, 50% другому
-      give_category: "luggage", give_tags: %w[weapon]
+      give_to_self_chance: 50,
+      give_category: "luggage", give_tags: %w[weapon security survival]
     },
     {
-      name: "Хакер + Ноутбук", type: :inject,
+      name: "Хакер + техника", type: :inject,
       trigger: { profession_tag: "software" },
       give_to_self_chance: 50,
-      give_category: "luggage", give_card_name_contains: "Ноутбук"
+      give_category: "luggage", give_tags: %w[software technical]
     },
     {
-      name: "Творческий + Депрессия", type: :inject,
+      name: "Творческий и страдалец", type: :inject,
       trigger: { any_profession_tag: %w[art social] },
-      give_category: "health", give_card_name_contains: "Депрессия"
+      give_category: "health", give_tags: %w[mental]
     },
 
     # ================================================================
-    # САМОИРОНИЯ (конфликтующая карта самому себе)
+    # САМОИРОНИЯ (конфликтующая карта себе)
+    # Все через теги — каждый раз случайная карта-конфликт
     # ================================================================
     {
-      name: "Безрукий хирург", type: :self_irony,
+      name: "Профессионал с изъяном", type: :self_irony,
       trigger: { profession_tag: "surgery" },
-      give_category: "health", give_card_name: "Тремор рук"
+      give_category: "health", give_tags: %w[disability physical]
     },
     {
-      name: "Хакер-технофоб", type: :self_irony,
+      name: "Технофоб-технарь", type: :self_irony,
       trigger: { profession_tag: "software" },
-      give_category: "phobia", give_card_name: "Технофобия"
+      give_category: "phobia", give_tags: %w[panic mental]
     },
     {
       name: "Клаустрофоб в бункере", type: :self_irony,
       trigger: :random_player,
-      give_category: "phobia", give_card_name: "Клаустрофобия"
+      give_category: "phobia", give_tags: %w[panic]
     },
     {
-      name: "Слепой снайпер", type: :self_irony,
+      name: "Военный с травмой", type: :self_irony,
       trigger: { profession_tag: "security" },
-      give_category: "health", give_tags: %w[disability]
-    },
-    {
-      name: "Нобелевский бомж", type: :self_irony,
-      trigger: :random_player,
-      give_category: "fact", give_card_name: "Нобелевский лауреат"
-      # Второй факт "Бродяжничал" добавится через balanced_cards
+      give_category: "health", give_tags: %w[mental disability]
     },
 
     # ================================================================
-    # ХОББИ → БАГАЖ (хобби усиливается багажом)
+    # ХОББИ → ПРЕДМЕТ (хобби усиливается багажом)
     # ================================================================
     {
       name: "Выживальщик", type: :hobby_boost,
       trigger: { hobby_tag: "survival" },
-      give_category: "luggage", give_tags: %w[weapon survival]
+      give_category: "luggage", give_tags: %w[weapon survival exploration]
     },
     {
       name: "Радист", type: :hobby_boost,
@@ -201,75 +183,54 @@ class SynergyEngine
       give_category: "luggage", give_tags: %w[communication technical]
     },
     {
-      name: "Кузнец", type: :hobby_boost,
+      name: "Мастер на все руки", type: :hobby_boost,
       trigger: { hobby_tag: "crafting" },
-      give_category: "luggage", give_tags: %w[technical building]
+      give_category: "luggage", give_tags: %w[technical building repair]
     },
     {
       name: "Травник", type: :hobby_boost,
       trigger: { hobby_tag: "nature" },
       give_category: "fact", give_tags: %w[nature survival]
     },
-    {
-      name: "Пиротехник", type: :hobby_boost,
-      trigger: { hobby_tag: "explosive" },
-      give_category: "fact", give_tags: %w[combat security]
-    },
 
     # ================================================================
-    # КАТАСТРОФА-СПЕЦИФИЧНЫЕ
+    # КАТАСТРОФА-СПЕЦИФИЧНЫЕ (через теги, не имена)
     # ================================================================
     {
-      name: "Ядерное наследие", type: :catastrophe,
+      name: "Радиационное снаряжение", type: :catastrophe,
       catastrophe_tags: %w[radiation],
-      give_category: "luggage", give_card_name_contains: "Гейгер"
+      give_category: "luggage", give_tags: %w[radiation science survival]
     },
     {
-      name: "Респиратор", type: :catastrophe,
-      catastrophe_tags: %w[radiation chemical],
-      give_category: "luggage", give_card_name_contains: "противогаз"
+      name: "Химзащита", type: :catastrophe,
+      catastrophe_tags: %w[chemical],
+      give_category: "luggage", give_tags: %w[medical survival science]
     },
     {
-      name: "Страх воды", type: :catastrophe,
-      catastrophe_tags: %w[water],
-      give_category: "phobia", give_card_name: "Аквафобия"
+      name: "Тематическая фобия", type: :catastrophe,
+      catastrophe_tags: %w[water mental strange],
+      give_category: "phobia", give_tags: %w[panic]
     },
     {
-      name: "Кошмары", type: :catastrophe,
-      catastrophe_tags: %w[mental strange],
-      give_category: "phobia", give_card_name: "Сомнифобия"
-    },
-    {
-      name: "Тихий ужас", type: :catastrophe,
-      catastrophe_tags: %w[communication],
-      give_category: "phobia", give_card_name: "Глоссофобия"
-    },
-    {
-      name: "Грибной эксперт", type: :catastrophe,
-      catastrophe_tags: %w[nature science],
-      give_category: "hobby", give_card_name: "Гидропоника"
+      name: "Полезное хобби", type: :catastrophe,
+      catastrophe_tags: %w[food survival nature],
+      give_category: "hobby", give_tags: %w[food survival nature agriculture]
     },
 
     # ================================================================
-    # ПЕРЕКРЁСТНЫЕ ФАКТЫ (двум игрокам дать связанные карты)
+    # ПЕРЕКРЁСТНЫЕ ФАКТЫ (двум игрокам связанные, но РАЗНЫЕ карты)
     # ================================================================
     {
-      name: "Шпион среди нас", type: :cross_fact,
-      give_both_category: "fact",
-      player_a_card_name: "Ранее судим за шпионаж",
-      player_b_card_name: "Ранее судим за шпионаж"
+      name: "Два секрета", type: :cross_fact,
+      give_both_category: "mixed",
+      player_a_category: "fact", player_a_tags: %w[criminal danger],
+      player_b_category: "fact", player_b_tags: %w[info social strange]
     },
     {
-      name: "Телепат и параноик", type: :cross_fact,
+      name: "Странная связь", type: :cross_fact,
       give_both_category: "mixed",
-      player_a_category: "fact", player_a_card_name: "Телепат",
-      player_b_category: "health", player_b_card_name: "Мания преследования"
-    },
-    {
-      name: "Криминал + Отмычки", type: :cross_fact,
-      give_both_category: "mixed",
-      player_a_category: "fact", player_a_tags: %w[criminal],
-      player_b_category: "luggage", player_b_card_name_contains: "отмычек"
+      player_a_category: "fact", player_a_tags: %w[strange mental],
+      player_b_category: "health", player_b_tags: %w[mental]
     },
   ].freeze
 
@@ -277,6 +238,7 @@ class SynergyEngine
     @cards_pool = cards_pool
     @catastrophe_tags = catastrophe_tags
     @applied = []
+    @used_card_ids = Set.new
   end
 
   # Главный метод: применяет синергии к игрокам.
@@ -318,7 +280,6 @@ class SynergyEngine
     trigger_player = find_by_condition(players, syn[:trigger])
     return false unless trigger_player
 
-    # Партнёр — другой игрок с другим тегом (или тем же, но другой человек)
     partner_player = find_by_condition(players, syn[:partner], exclude: trigger_player)
     return false unless partner_player
 
@@ -329,14 +290,12 @@ class SynergyEngine
     return false unless card
 
     give_card!(receiver, card)
-    true
   end
 
   def apply_inject(syn, players)
     trigger_player = find_by_condition(players, syn[:trigger])
     return false unless trigger_player
 
-    # Определяем получателя
     if syn[:give_to_self_chance] && rand(100) < syn[:give_to_self_chance]
       receiver = trigger_player
     else
@@ -349,7 +308,6 @@ class SynergyEngine
     return false unless card
 
     give_card!(receiver, card)
-    true
   end
 
   def apply_self_irony(syn, players)
@@ -365,11 +323,9 @@ class SynergyEngine
     return false unless card
 
     give_card!(trigger_player, card)
-    true
   end
 
   def apply_catastrophe(syn, players)
-    # Проверяем пересечение тегов катастрофы с требованиями синергии
     return false unless (syn[:catastrophe_tags] & @catastrophe_tags).any?
 
     receiver = available_for(players, syn[:give_category]).sample
@@ -379,7 +335,6 @@ class SynergyEngine
     return false unless card
 
     give_card!(receiver, card)
-    true
   end
 
   def apply_hobby_boost(syn, players)
@@ -394,15 +349,17 @@ class SynergyEngine
     return false unless card
 
     give_card!(trigger_player, card)
-    true
   end
 
   def apply_cross_fact(syn, players)
-    available_a = available_for(players, syn[:player_a_category] || syn[:give_both_category])
+    cat_a = syn[:player_a_category] || syn[:give_both_category]
+    cat_b = syn[:player_b_category] || syn[:give_both_category]
+
+    available_a = available_for(players, cat_a)
     return false if available_a.count < 2
 
     player_a = available_a.sample
-    available_b = available_for(players, syn[:player_b_category] || syn[:give_both_category], exclude: player_a)
+    available_b = available_for(players, cat_b, exclude: player_a)
     player_b = available_b.sample
     return false unless player_a && player_b
 
@@ -410,23 +367,26 @@ class SynergyEngine
     card_b = find_card_for_cross(syn, :b)
     return false unless card_a && card_b
 
-    give_card!(player_a, card_a)
-    give_card!(player_b, card_b)
-    true
+    # Гарантируем разные карты
+    if card_a.id == card_b.id
+      pool = available_pool(cat_b)
+      card_b = pool.reject { |c| c.id == card_a.id }.sample
+      return false unless card_b
+    end
+
+    result_a = give_card!(player_a, card_a)
+    result_b = give_card!(player_b, card_b)
+    result_a && result_b
   end
 
   # ================================================================
-  # ПОИСК КАРТ
+  # ПОИСК КАРТ (всегда через available_pool — без дублей)
   # ================================================================
 
   def find_card(syn)
-    pool = @cards_pool[syn[:give_category]] || []
+    pool = available_pool(syn[:give_category])
 
-    if syn[:give_card_name]
-      pool.find { |c| c.name == syn[:give_card_name] }
-    elsif syn[:give_card_name_contains]
-      pool.find { |c| c.name.downcase.include?(syn[:give_card_name_contains].downcase) }
-    elsif syn[:give_filter] == :curable_disease
+    if syn[:give_filter] == :curable_disease
       pool.select { |c| c.is_curable && c.weight < 0 }.sample
     elsif syn[:give_tags]
       matching = pool.select { |c| (parse_tags(c.tags) & syn[:give_tags]).any? }
@@ -438,25 +398,20 @@ class SynergyEngine
 
   def find_card_for_cross(syn, side)
     cat = syn[:"player_#{side}_category"] || syn[:give_both_category]
-    pool = @cards_pool[cat] || []
+    pool = available_pool(cat)
 
-    name = syn[:"player_#{side}_card_name"]
-    name_contains = syn[:"player_#{side}_card_name_contains"]
     tags = syn[:"player_#{side}_tags"]
 
-    if name
-      pool.find { |c| c.name == name }
-    elsif name_contains
-      pool.find { |c| c.name.downcase.include?(name_contains.downcase) }
-    elsif tags
-      pool.select { |c| (parse_tags(c.tags) & tags).any? }.sample
+    if tags
+      matching = pool.select { |c| (parse_tags(c.tags) & tags).any? }
+      matching.any? ? matching.sample : nil
     else
       pool.sample
     end
   end
 
   # ================================================================
-  # ПОИСК ИГРОКОВ
+  # УТИЛИТЫ
   # ================================================================
 
   def find_by_condition(players, condition, exclude: nil)
@@ -482,12 +437,14 @@ class SynergyEngine
     }
   end
 
-  # ================================================================
-  # УТИЛИТЫ
-  # ================================================================
-
   def player_has_category?(player, category)
     player.cards.any? { |c| c.category == category }
+  end
+
+  # Пул карт без уже выданных
+  def available_pool(category)
+    pool = @cards_pool[category] || []
+    pool.reject { |c| @used_card_ids.include?(c.id) }
   end
 
   def has_tag?(tags_string, tag)
@@ -499,12 +456,17 @@ class SynergyEngine
   end
 
   def give_card!(player, card)
+    return false unless card
+    return false if @used_card_ids.include?(card.id)
+
     severity = nil
     if card.category == "health" && !has_tag?(card.tags, "healthy") && !has_tag?(card.tags, "unknown")
       severity = rand(2..19) * 5
     end
 
     PlayerCard.create!(player: player, card: card, severity: severity, revealed: false)
+    @used_card_ids.add(card.id)
     player.reload
+    true
   end
 end

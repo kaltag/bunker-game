@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_16_123350) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_16_130538) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -51,6 +51,20 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_16_123350) do
     t.string "card_bias_tags"
   end
 
+  create_table "game_events", force: :cascade do |t|
+    t.bigint "game_id", null: false
+    t.bigint "player_id"
+    t.integer "target_player_id"
+    t.string "event_type", null: false
+    t.string "description", null: false
+    t.integer "round"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["game_id", "created_at"], name: "index_game_events_on_game_id_and_created_at"
+    t.index ["game_id"], name: "index_game_events_on_game_id"
+    t.index ["player_id"], name: "index_game_events_on_player_id"
+  end
+
   create_table "games", force: :cascade do |t|
     t.string "code"
     t.string "status"
@@ -72,6 +86,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_16_123350) do
     t.boolean "raid_params_revealed"
     t.jsonb "raid_candidate_ids", default: []
     t.string "host_token", default: -> { "upper(substr(md5((random())::text), 1, 16))" }, null: false
+    t.integer "max_players", default: 8
     t.index ["catastrophe_id"], name: "index_games_on_catastrophe_id"
     t.index ["host_token"], name: "index_games_on_host_token", unique: true
     t.index ["threat_id"], name: "index_games_on_threat_id"
@@ -115,6 +130,8 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_16_123350) do
     t.string "raid_status", default: "at_home"
     t.text "raid_outcome"
     t.string "nickname"
+    t.string "color"
+    t.string "avatar_emoji"
     t.index ["game_id"], name: "index_players_on_game_id"
   end
 
@@ -144,6 +161,9 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_16_123350) do
     t.datetime "updated_at", null: false
   end
 
+  add_foreign_key "game_events", "games"
+  add_foreign_key "game_events", "players"
+  add_foreign_key "game_events", "players", column: "target_player_id"
   add_foreign_key "games", "catastrophes"
   add_foreign_key "games", "threats"
   add_foreign_key "player_action_cards", "action_cards"

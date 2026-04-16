@@ -9,10 +9,19 @@ class GameGenerator
   end
 
   def call(player_count = PLAYER_COUNT)
-    @game.players.destroy_all
+    @game.game_events.delete_all  # Очищаем лог перед перегенерацией
 
-    setup_bunker(player_count)
-    players = create_players(player_count)
+    # Если игроки уже существуют (из лобби) — используем их, только чистим карты
+    # Если нет — создаём новых (обратная совместимость)
+    existing = @game.players.reload
+    if existing.any?
+      existing.each { |p| p.player_cards.delete_all; p.player_action_cards.delete_all }
+      players = existing.to_a
+    else
+      players = create_players(player_count)
+    end
+
+    setup_bunker(players.count)
 
     # Этап 1: Уникальные профессии (с учётом биаса катастрофы)
     assign_unique_professions(players)
@@ -23,6 +32,9 @@ class GameGenerator
     # Этап 3: Data-driven синергии через SynergyEngine (30+ типов)
     engine = SynergyEngine.new(@available_cards, @catastrophe_bias_tags)
     @applied_synergies = engine.apply(players)
+
+    # Убираем из пула карты, выданные синергиями (чтобы не дублировались)
+    remove_used_cards_from_pool(players)
 
     # Этап 4: Балансированная раздача оставшихся карт
     %w[health luggage hobby fact phobia].each { |cat| assign_balanced_cards(players, cat) }
@@ -130,12 +142,14 @@ class GameGenerator
   # ============================================================
 
   def assign_balanced_cards(players, category)
-    cards_pool = @available_cards[category]&.shuffle&.dup || []
+    cards_pool = @available_cards[category]&.dup || []
+    return if cards_pool.empty?
 
-    players.each do |player|
+    # Перемешиваем порядок игроков — иначе первый всегда получает "лучшую" карту
+    players.shuffle.each do |player|
       next if player_has_category?(player, category)
 
-      card = find_balancing_card(cards_pool, player, category)
+      card = weighted_random_card(cards_pool, player)
       next unless card
 
       add_card_to_player(player, card)
@@ -147,26 +161,58 @@ class GameGenerator
     end
   end
 
-  # Подбираем карту так, чтобы КП игрока стремился к 0.
-  # Катастрофа даёт +30% boost к релевантным картам.
-  def find_balancing_card(cards_pool, player, category)
+  # Взвешенный рандом с экспоненциальным затуханием.
+  #
+  # Вместо "выбрать top-N ближайших к 0" — КАЖДАЯ карта имеет шанс,
+  # но карты ближе к балансу более вероятны.
+  #
+  # Формула: probability = e^(-distance * DECAY)
+  #   distance 0 (идеал) → вероятность 1.0
+  #   distance 1          → вероятность 0.74
+  #   distance 2          → вероятность 0.55
+  #   distance 4          → вероятность 0.30
+  #   distance 6          → вероятность 0.17
+  #
+  # DECAY=0.3 — баланс между разнообразием и весовой логикой.
+  BALANCE_DECAY = 0.3
+
+  def weighted_random_card(cards_pool, player)
     return nil if cards_pool.empty?
 
     current_weight = player.cards.sum(&:weight)
 
-    scored = cards_pool.map do |card|
-      balance_dist = (current_weight + card.weight).abs
-      # Катастрофа-биас: релевантные карты получают "скидку" в 1 пункт distance
+    weighted = cards_pool.map do |card|
+      distance = (current_weight + card.weight).abs
+      prob = Math.exp(-distance * BALANCE_DECAY)
+
+      # Катастрофа-биас: +30% вероятность для релевантных карт
       if @catastrophe_bias_tags.any? && tags_overlap?(card.tags, @catastrophe_bias_tags)
-        balance_dist = [ balance_dist - 1, 0 ].max
+        prob *= 1.3
       end
-      [ card, balance_dist ]
+
+      [ card, prob ]
     end
 
-    # Сортируем по distance, берём из top-3 (больше вариативности чем top-2)
-    sorted = scored.sort_by(&:last)
-    top = sorted.first(3).map(&:first)
-    top.sample
+    # Взвешенный выбор
+    total = weighted.sum(&:last)
+    return cards_pool.sample if total == 0
+
+    point = rand * total
+    cumulative = 0.0
+    weighted.shuffle.each do |card, prob|  # shuffle чтобы при равных весах не было порядка
+      cumulative += prob
+      return card if cumulative >= point
+    end
+
+    cards_pool.sample # fallback
+  end
+
+  # Убираем из available_cards карты, которые уже выданы синергиями
+  def remove_used_cards_from_pool(players)
+    used_card_ids = players.flat_map { |p| p.cards.pluck(:id) }.to_set
+    @available_cards.each do |category, cards|
+      cards.reject! { |c| used_card_ids.include?(c.id) } unless category == "profession"
+    end
   end
 
   # ============================================================

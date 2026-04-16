@@ -124,8 +124,11 @@ class PlayerActionCardsController < ApplicationController
 
       @player_action_card.update!(used: true)
 
+      # Лог действия
+      target_name = target ? " на #{target.display_name}" : ""
+      @game.log_event!("action_used", "#{@player.display_name} использовал '#{action_card.name}'#{target_name}", player: @player, target: target)
+
       # Единый broadcast после всех изменений.
-      # Гарантирует обновление даже для update_all (который обходит колбэки).
       Turbo::StreamsChannel.broadcast_refresh_to(@game)
     end
 

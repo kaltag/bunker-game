@@ -227,3 +227,30 @@
         </div>
       </div>
     </div>
+
+    <% if Rails.env.development? && current_host? %>
+      <div class="flex flex-wrap gap-2 mt-4">
+        <%= button_to "DEV: Вскрыть все карты", dev_reveal_all_game_path(game), method: :post,
+            class: "btn-game bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 text-xs" %>
+        <%= button_to "DEV: Следующий раунд (×3)", reveal_next_round_game_path(game), method: :post,
+            class: "btn-game bg-gray-700 hover:bg-gray-600 text-gray-300 py-2 px-4 text-xs" %>
+      </div>
+    <% end %>
+
+    <!-- Хроника партии (лог событий) -->
+    <% events = game.game_events.chronological %>
+    <% if events.any? %>
+      <div class="panel p-4 sm:p-5 md:p-6 mt-6 md:mt-8">
+        <h2 class="text-sm md:text-base font-black text-gray-400 uppercase tracking-widest mb-3">Хроника партии</h2>
+        <div class="max-h-48 md:max-h-64 overflow-y-auto space-y-1.5 pr-2 scrollbar-thin">
+          <% events.each do |event| %>
+            <div class="flex gap-2 text-xs sm:text-sm leading-relaxed">
+              <span class="text-gray-600 font-mono font-bold shrink-0">[R<%= event.round || '?' %>]</span>
+              <span class="<%= event.event_type == 'player_eliminated' ? 'text-red-400' : event.event_type == 'threat_revealed' ? 'text-yellow-400' : 'text-gray-300' %>">
+                <%= event.description %>
+              </span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>

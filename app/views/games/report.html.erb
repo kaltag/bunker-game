@@ -1,3 +1,9 @@
+<% content_for(:head) do %>
+  <meta property="og:title" content="Бункер — Итоги партии #<%= @game.code %>">
+  <meta property="og:description" content="Катастрофа: <%= @game.catastrophe&.name %>. Выжили: <%= @game.active_players.count %>/<%= @game.players.count %>">
+  <meta property="og:type" content="website">
+<% end %>
+
 <div class="min-h-dvh bg-gray-950 text-white p-3 sm:p-4 md:p-6 lg:p-8 font-sans flex flex-col items-center safe-px safe-pb">
   <div class="max-w-4xl w-full">
 
@@ -7,16 +13,36 @@
     </div>
 
     <div class="panel p-4 sm:p-6 md:p-8">
-      <!-- Поле с логом -->
+      <!-- Поле с промптом -->
       <textarea id="ai-prompt" class="w-full h-[40vh] sm:h-[45vh] md:h-[50vh] bg-gray-900 text-green-400 font-mono text-xs sm:text-sm md:text-base p-4 sm:p-5 md:p-6 rounded-xl border border-gray-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-y mb-5 sm:mb-6 leading-relaxed shadow-inner" readonly><%= @game.ai_report %></textarea>
 
       <!-- Кнопки управления -->
-      <div class="flex flex-col sm:flex-row gap-3 sm:gap-4">
+      <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-5">
         <button onclick="copyPrompt()" id="copy-btn" class="btn-action flex-1 text-center">
           Скопировать для ИИ
         </button>
 
-        <%= link_to "Сыграть снова", root_path, class: "btn-secondary flex-1 text-center flex items-center justify-center" %>
+        <%= button_to "Переиграть", rematch_game_path(@game), method: :post, class: "btn-primary flex-1 text-center" %>
+      </div>
+
+      <!-- Шеринг -->
+      <div class="flex flex-col sm:flex-row gap-3">
+        <% share_text = "Бункер — Партия ##{@game.code}\nКатастрофа: #{@game.catastrophe&.name}\nВыжили: #{@game.active_players.count}/#{@game.players.count}" %>
+        <% share_url = report_game_url(@game) %>
+
+        <a href="https://t.me/share/url?url=<%= CGI.escape(share_url) %>&text=<%= CGI.escape(share_text) %>"
+           target="_blank" rel="noopener"
+           class="btn-game flex-1 text-center bg-sky-600 hover:bg-sky-500 text-white py-3">
+          Telegram
+        </a>
+
+        <a href="https://api.whatsapp.com/send?text=<%= CGI.escape(share_text + "\n" + share_url) %>"
+           target="_blank" rel="noopener"
+           class="btn-game flex-1 text-center bg-green-600 hover:bg-green-500 text-white py-3">
+          WhatsApp
+        </a>
+
+        <%= link_to "На главную", root_path, class: "btn-secondary flex-1 text-center flex items-center justify-center" %>
       </div>
     </div>
 

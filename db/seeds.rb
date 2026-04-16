@@ -114,7 +114,6 @@ healths = [
   # --- Tier S (Отличное или скрытое состояние) ---
   { name: 'Идеально здоров', tier: 'S', tags: 'healthy', weight: 2, description: 'Никаких жалоб, идеальные показатели.', is_curable: true },
   { name: 'Не обследовался', tier: 'S', tags: 'unknown', weight: 0, description: 'Чувствует себя нормально, но кто знает, что внутри...', is_curable: true },
-  { name: 'Иммунитет к вирусам', tier: 'S', tags: 'healthy, vital', weight: 3, description: 'Его организм вырабатывает антитела к любым внешним угрозам.', is_curable: false },
 
   # --- Tier A (Мелкие странности или легкие дефекты) ---
   { name: 'Повышенная волосатость', tier: 'A', tags: 'physical, cosmetic', weight: 0, description: 'Густая шерсть по всему телу. Зимой даже плюс.', is_curable: false },

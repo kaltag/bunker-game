@@ -1,17 +1,51 @@
 class Game < ApplicationRecord
-  belongs_to :catastrophe
+  belongs_to :catastrophe, optional: true
   belongs_to :threat, optional: true
   has_many :players, dependent: :destroy
+  has_many :game_events, dependent: :destroy
 
-  # Статусы игры: подготовка, идет игра, завершена
   enum :status, { preparing: "preparing", in_progress: "in_progress", finished: "finished" }, default: "preparing"
-  # Генерация случайного кода для игры (например "A1B2"), чтобы кидать ссылку друзьям
+
   before_create :generate_code
   before_create :generate_host_token
 
   broadcasts_refreshes
 
-  # Динамический расчет: сколько человек выгоняем в текущем раунде
+  # ============================================================
+  # ЛОББИ
+  # ============================================================
+
+  def ready_to_start?
+    preparing? && players.count >= 6
+  end
+
+  def lobby_full?
+    players.count >= max_players
+  end
+
+  def next_color
+    used = players.pluck(:color).compact
+    (Player::PLAYER_COLORS - used).first || Player::PLAYER_COLORS.sample
+  end
+
+  # ============================================================
+  # ЛОГ СОБЫТИЙ
+  # ============================================================
+
+  def log_event!(event_type, description, player: nil, target: nil)
+    game_events.create!(
+      event_type: event_type,
+      description: description,
+      player: player,
+      target_player: target,
+      round: current_round
+    )
+  end
+
+  # ============================================================
+  # ИГРОВАЯ МЕХАНИКА
+  # ============================================================
+
   def eliminations_this_round
     total_to_eliminate = total_remaining_eliminations
     return 0 if total_to_eliminate <= 0 || current_round > 5
@@ -36,7 +70,6 @@ class Game < ApplicationRecord
     active_players.where(id: raid_candidate_ids)
   end
 
-  # Завершает активный рейд: разрешает исходы для всех рейдеров
   def resolve_active_raid!
     return unless active_raid_id.present?
 
@@ -48,30 +81,76 @@ class Game < ApplicationRecord
     update!(active_raid_id: nil, raid_params_revealed: false, raid_candidate_ids: [])
   end
 
-  # Переход к следующему раунду с разрешением рейда
   def advance_round!
     resolve_active_raid!
     update!(current_round: current_round + 1) if current_round <= 5
   end
 
-  # Генерация идеального промпта для ИИ
+  # ============================================================
+  # ТРАНСФОРМАЦИЯ "НЕ ОБСЛЕДОВАЛСЯ" ПРИ ВХОДЕ В БУНКЕР
+  # ============================================================
+
+  def resolve_unknown_health!
+    active_players.includes(player_cards: :card).each do |player|
+      health_pc = player.player_cards.joins(:card)
+        .where(cards: { category: "health" })
+        .where("cards.tags LIKE ?", "%unknown%")
+        .first
+      next unless health_pc
+
+      if rand(2).zero?
+        # Повезло: оказался здоров
+        good_card = Card.where(category: "health").where("tags LIKE ?", "%healthy%").where("weight > 0").order("RANDOM()").first
+        if good_card
+          health_pc.update!(card: good_card, severity: nil)
+          log_event!("health_reveal", "#{player.display_name} прошёл обследование — #{good_card.name}!", player: player)
+        end
+      else
+        # Не повезло: скрытая болезнь
+        bad_card = Card.where(category: "health", tier: %w[B C]).where("weight < 0").order("RANDOM()").first
+        if bad_card
+          severity = rand(2..19) * 5 # 10-95%
+          health_pc.update!(card: bad_card, severity: severity)
+          log_event!("health_reveal", "#{player.display_name} прошёл обследование — обнаружено: #{bad_card.name} (#{severity}%)!", player: player)
+        end
+      end
+    end
+  end
+
+  # ============================================================
+  # AI ПРОМПТ (улучшенный)
+  # ============================================================
+
   def ai_report
     survivors = players.where(eliminated: false).includes(player_cards: :card)
     exiled = players.where(eliminated: true).includes(player_cards: :card)
 
-    prompt = "Ты — ИИ-сценарист. Твоя цель: написать драматичную историю выживания группы в игре 'Бункер', учитывая ЖЕСТКУЮ логику навыков и болезней.\n\n"
+    prompt = "Ты — ИИ-сценарист. Твоя цель: написать драматичную, жёсткую и реалистичную историю выживания группы в игре 'Бункер'.\n"
+    prompt += "ВАЖНО: Соблюдай ВСЕ игровые правила ниже БУКВАЛЬНО. Это не рекомендации — это ЗАКОНЫ мира.\n\n"
 
+    # --- МИР ---
     prompt += "=== МИР И УСЛОВИЯ ===\n"
-    prompt += "Катастрофа: #{catastrophe&.name} (#{catastrophe&.description})\n"
-    prompt += "Бункер: #{bunker_capacity} чел, #{bunker_duration} лет. #{bunker_size}, #{bunker_supplies}.\n"
-    prompt += "Лут: #{bunker_items}\n"
-    bunker_features.each { |f| prompt += "- #{f['name']}: #{f['description']}\n" }
-    prompt += "Происшествие: #{threat&.name} (#{threat&.description})\n\n"
+    prompt += "Катастрофа: #{catastrophe&.name} — #{catastrophe&.description}\n"
+    prompt += "Бункер: #{bunker_capacity} мест, #{bunker_duration} лет. Размер: #{bunker_size}. Снабжение: #{bunker_supplies}.\n"
+    prompt += "Оснащение бункера: #{bunker_items}\n" if bunker_items.present?
+    bunker_features&.each { |f| prompt += "- Особенность: #{f['name']} — #{f['description']}\n" }
+    prompt += "Происшествие: #{threat&.name} — #{threat&.description}\n\n" if threat
 
-    format_player_data = ->(p, _i, label) do
-      res = "#{label}: #{p.display_name} (#{p.gender}, #{p.age} лет, #{p.is_infertile ? 'Бесплоден' : 'Способен к размножению'}):\n"
+    # --- ХРОНИКА СОБЫТИЙ ---
+    events = game_events.chronological
+    if events.any?
+      prompt += "=== ХРОНИКА СОБЫТИЙ (что происходило в игре) ===\n"
+      events.each do |e|
+        prompt += "[Раунд #{e.round || '?'}] #{e.description}\n"
+      end
+      prompt += "\n"
+    end
+
+    # --- ИГРОКИ ---
+    format_player = ->(p, label) do
+      res = "#{label}: #{p.display_name} (#{p.gender}, #{p.age} лет, #{p.is_infertile ? 'бесплоден' : 'фертилен'}):\n"
       p.ordered_player_cards.each do |pc|
-        status = pc.revealed ? "" : "[ТАЙНА]"
+        status = pc.revealed ? "[ВСКРЫТО]" : "[ТАЙНА — игроки НЕ ЗНАЛИ]"
         details = pc.card.name
         details += " (Стаж: #{p.profession_experience} л.)" if pc.card.category == "profession"
         details += " (Стаж: #{p.hobby_experience} л.)" if pc.card.category == "hobby"
@@ -81,91 +160,126 @@ class Game < ApplicationRecord
       res + "\n"
     end
 
-    prompt += "=== ИСПОЛЬЗОВАННЫЕ ОСОБЫЕ УСЛОВИЯ ===\n"
-    used_cards = PlayerActionCard.joins(:player).where(players: { game_id: id }, used: true)
-
-    if used_cards.any?
-      used_cards.includes(:action_card, :player).each do |link|
-        prompt += "- #{link.player.display_name} разыграл карту: '#{link.action_card.name}'.\n"
-      end
-    else
-      prompt += "Спец. карты не использовались.\n"
-    end
-
-    prompt += "=== ГРУППА В БУНКЕРЕ ===\n"
-    survivors.each_with_index { |p, i| prompt += format_player_data.call(p, i, "Выживший") }
+    prompt += "=== ГРУППА В БУНКЕРЕ (выжившие) ===\n"
+    survivors.each { |p| prompt += format_player.call(p, "Выживший") }
 
     prompt += "=== ИЗГНАННЫЕ ===\n"
     if exiled.any?
-      exiled.each_with_index { |p, i| prompt += format_player_data.call(p, i, "Изгнанный") }
+      exiled.each { |p| prompt += format_player.call(p, "Изгнанный") }
     else
       prompt += "Изгнанных нет.\n\n"
     end
 
-    prompt += "=== ПРАВИЛА МИРА (СОБЛЮДАТЬ ОБЯЗАТЕЛЬНО) ===\n"
-    prompt += "1. ЗАКОН ТЕГА 'СПОСОБЕН К РАЗМНОЖЕНИЮ': Это магический/технологический статус. Если у Мужчины и Женщины стоит этот тег, они ОБЯЗАНЫ зачать и родить здорового ребенка в первые годы в бункере, НЕЗАВИСИМО ОТ ВОЗРАСТА (даже если женщине 80 лет). Игнорируй биологический климакс. Опиши рождение и воспитание 'Дитя Бункера' — это единственный шанс на выживание вида.\n"
-    prompt += "2. ЗАКОН СМЕРТНОСТИ: Если в течение срока игрок достигает возраста 85+ лет, он должен столкнуться со смертельным кризисом от старости. Если в группе НЕТ Врача, Хирурга или Генетика (Tier S/A), этот игрок УМИРАЕТ к концу срока. Не позволяй 90-летним старикам бодро выходить из бункера без медицинской помощи высокого уровня.\n"
-   prompt += "3. ВЕС БОЛЕЗНЕЙ: Если у игрока болезнь тяжестью > 70%, опиши МИНИМУМ ОДИН смертельно опасный кризис. Если болезнь лайтовая (понос), это должно создать комичную или унизительную ситуацию, мешающую выживанию.\n\n"
-    # Синергии специалистов
-    geneticist = survivors.find { |s| s.profession&.name == "Генетик" }
-    infertile_survivors = survivors.select(&:is_infertile)
+    # --- ИСПОЛЬЗОВАННЫЕ КАРТЫ ---
+    prompt += "=== ИСПОЛЬЗОВАННЫЕ ОСОБЫЕ УСЛОВИЯ ===\n"
+    used_cards = PlayerActionCard.joins(:player).where(players: { game_id: id }, used: true).includes(:action_card, :player)
+    if used_cards.any?
+      used_cards.each { |link| prompt += "- #{link.player.display_name} использовал: '#{link.action_card.name}'.\n" }
+    else
+      prompt += "Спец. карты не использовались.\n"
+    end
+    prompt += "\n"
 
-    if geneticist
-      if infertile_survivors.any?
-        prompt += "2. НАУЧНЫЙ ПРОРЫВ: Генетик (#{geneticist.display_name}) использует передовые технологии для ИЗЛЕЧЕНИЯ биологического бесплодия у следующих выживших: #{infertile_survivors.map(&:display_name).join(', ')}. Это ПРИОРИТЕТНАЯ задача. Опиши, как благодаря науке те, кто считался бесплодным, получили шанс стать родителями.\n"
-      else
-        prompt += "2. НАУЧНЫЙ ПРОРЫВ: Генетик (#{geneticist.display_name}) гарантирует идеальное здоровье будущих детей, исправляя любые генетические дефекты у фертильных членов группы.\n"
+    # --- АБСОЛЮТНЫЕ ПРАВИЛА ---
+    prompt += "=== АБСОЛЮТНЫЕ ПРАВИЛА МИРА (НАРУШАТЬ ЗАПРЕЩЕНО) ===\n"
+    prompt += "1. ФЕРТИЛЬНОСТЬ = 100% РОЖДЕНИЕ: Если в бункере есть фертильный Мужчина И фертильная Женщина — они ОБЯЗАНЫ зачать ребёнка. Возраст НЕ ИМЕЕТ значения (даже 80 лет). Это магический/технологический закон мира. Опиши рождение 'Дитя Бункера'.\n"
+    prompt += "2. ВРАЧ ЛЕЧИТ = 100%: Если есть Врач/Хирург/Медсестра (тег medical) — любая излечимая болезнь БУДЕТ вылечена. Без вариантов. Опиши лечение.\n"
+    prompt += "3. ПСИХОЛОГ ЛЕЧИТ = 100%: Если есть Психолог/Психиатр (тег mental_health) — любая фобия ПОЛНОСТЬЮ исцеляется. Опиши терапию.\n"
+    prompt += "4. ИНЖЕНЕР ЧИНИТ = 100%: Если есть Инженер/Электрик + инструменты — все технические проблемы решены.\n"
+    prompt += "5. БОЛЕЗНЬ > 70% = СМЕРТЕЛЬНЫЙ КРИЗИС: Минимум 1 кризис. Если нет врача — игрок может УМЕРЕТЬ.\n"
+    prompt += "6. СТАРОСТЬ (85+ лет к концу срока): Без врача S/A тира — СМЕРТЬ от старости.\n"
+    prompt += "7. ЛЁГКИЕ БОЛЕЗНИ = КОМЕДИЯ: Понос, храп, волосатость — создают комичные/унизительные ситуации.\n\n"
+
+    # --- МАНЬЯК / ОПАСНЫЕ ФАКТЫ ---
+    hidden_dangers = []
+    survivors.each do |p|
+      p.player_cards.joins(:card).where(cards: { category: "fact" }, revealed: false).each do |pc|
+        tags = pc.card.tags.to_s
+        if tags.include?("danger") || tags.include?("criminal")
+          hidden_dangers << { player: p.display_name, fact: pc.card.name }
+        end
       end
+    end
+
+    if hidden_dangers.any?
+      prompt += "=== СКРЫТЫЕ УГРОЗЫ В БУНКЕРЕ ===\n"
+      hidden_dangers.each do |d|
+        prompt += "! #{d[:player]} скрывает факт: '#{d[:fact]}'. Это НЕ БЫЛО ВСКРЫТО в игре.\n"
+      end
+      prompt += "ПРАВИЛО МАНЬЯКА: Если факт 'Маньяк-убийца' или 'Скрытый каннибал' НЕ был вскрыт — этот персонаж УБИВАЕТ минимум 1 человека в бункере. Опиши КАК: тихо, методично, ночью. Если никто не имеет тега 'security' — убийства продолжаются.\n"
+      prompt += "ПРАВИЛО ОПАСНОСТИ: Скрытый 'Психопат' или 'Наркодилер' создаёт конфликты и разрушает группу изнутри.\n\n"
+    end
+
+    # --- СИНЕРГИИ ---
+    prompt += "=== СИНЕРГИИ СПЕЦИАЛИСТОВ (автоматические бонусы) ===\n"
+    synergies_found = 0
+
+    geneticist = survivors.find { |s| s.profession&.name == "Генетик" }
+    if geneticist
+      infertile = survivors.select(&:is_infertile)
+      if infertile.any?
+        prompt += "- ГЕНЕТИК #{geneticist.display_name} ИЗЛЕЧИВАЕТ бесплодие у: #{infertile.map(&:display_name).join(', ')}.\n"
+      else
+        prompt += "- ГЕНЕТИК #{geneticist.display_name} гарантирует здоровье будущих детей.\n"
+      end
+      synergies_found += 1
     end
 
     survivors.each do |p1|
       survivors.each do |p2|
         next if p1 == p2
-        # Психология: ПОЛНОЕ ИЗЛЕЧЕНИЕ
-        if p1.profession&.tags.to_s.include?("mental_health") && p2.phobia&.tags.to_s.include?("panic")
-          prompt += "- ПРАВИЛО: Психолог (#{p1.profession.name}) ПОЛНОСТЬЮ излечивает фобию '#{p2.phobia.name}' у #{p2.display_name}.\n"
-        end
+        p1_tags = p1.profession&.tags.to_s.split(/,\s*/)
+        p2_phobia_tags = p2.phobia&.tags.to_s.split(/,\s*/)
+        p2_health_tags = p2.health&.tags.to_s.split(/,\s*/)
+        p2_luggage_tags = p2.luggage&.tags.to_s.split(/,\s*/)
 
-        # Медицина: ПОЛНОЕ ИЗЛЕЧЕНИЕ
-        if p1.profession&.tags.to_s.include?("medical") && p2.health&.is_curable && p2.health&.tags.to_s.match?(/physical|disease|injury/)
-          prompt += "- ПРАВИЛО: Врач (#{p1.profession.name}) ГАРАНТИРОВАННО вылечивает болезнь '#{p2.health.name}' у #{p2.display_name}. Игрок становится полностью трудоспособен.\n"
+        if p1_tags.include?("mental_health") && p2_phobia_tags.include?("panic")
+          prompt += "- #{p1.profession.name} (#{p1.display_name}) ИЗЛЕЧИВАЕТ фобию '#{p2.phobia.name}' у #{p2.display_name}.\n"
+          synergies_found += 1
         end
-
-        # Техника: БЕЗУСЛОВНЫЙ УСПЕХ
-        if p1.profession&.tags.to_s.include?("technical") && p2.luggage&.tags.to_s.include?("repair")
-          prompt += "- ПРАВИЛО: Благодаря Инженеру (#{p1.profession.name}) и предмету '#{p2.luggage.name}', любые технические поломки в бункере устраняются МГНОВЕННО.\n"
+        if p1_tags.include?("medical") && p2.health&.is_curable && (p2_health_tags & %w[physical disease injury]).any?
+          prompt += "- #{p1.profession.name} (#{p1.display_name}) ИЗЛЕЧИВАЕТ '#{p2.health.name}' у #{p2.display_name}.\n"
+          synergies_found += 1
+        end
+        if p1_tags.include?("technical") && p2_luggage_tags.include?("repair")
+          prompt += "- #{p1.profession.name} (#{p1.display_name}) + '#{p2.luggage.name}' = мгновенный ремонт.\n"
+          synergies_found += 1
         end
       end
     end
-    # === ХРОНИКИ ВНЕШНИХ ВЫЛАЗОК (РЕЙДЫ) ===
-    prompt += "=== ХРОНИКИ ВНЕШНИХ ВЫЛАЗОК (РЕЙДЫ) ===\n"
-    raid_events = players.where.not(raid_status: "at_home")
+    prompt += "Синергий не обнаружено.\n" if synergies_found == 0
+    prompt += "\n"
 
-    if raid_events.any?
-      raid_events.each do |p|
+    # --- РЕЙДЫ ---
+    prompt += "=== ХРОНИКИ ВЫЛАЗОК ===\n"
+    raid_players = players.where.not(raid_status: "at_home")
+    if raid_players.any?
+      raid_players.each do |p|
         status_text = case p.raid_status
-        when "returned_triumph" then "Триумфальное возвращение: нашел ценные ресурсы и новые инструкции."
-        when "returned_success" then "Успех: вернулся с полезным багажом."
-        when "returned_empty" then "Неудача: вернулся живым, но с пустыми руками."
-        when "returned_injured" then "Трагедия: вернулся с тяжелыми ранениями/болезнью."
-        when "dead" then "Героическая гибель: не вернулся из вылазки."
+        when "returned_triumph" then "Триумф: ценные ресурсы."
+        when "returned_success" then "Успех: полезный багаж."
+        when "returned_empty" then "Пусто: вернулся ни с чем."
+        when "returned_injured" then "Трагедия: ранен/заражён."
+        when "dead" then "Погиб на поверхности."
         end
-        prompt += "- #{p.display_name} (#{p.profession&.name || 'Профессия скрыта'}): #{status_text}\n"
+        prompt += "- #{p.display_name}: #{status_text} #{p.raid_outcome}\n"
       end
     else
-      prompt += "За всю игру группа ни разу не рискнула выйти наружу.\n"
+      prompt += "Никто не выходил наружу.\n"
     end
 
+    # --- ЗАДАНИЕ ---
     prompt += "\n=== ТВОЯ ЗАДАЧА ===\n"
-    prompt += "1. Опиши быт в бункере. Как вскрывшиеся ТАЙНЫ (которые не знали при входе) изменили отношение людей друг к другу?\n"
-    prompt += "2. Опиши, как группа справилась с происшествием: '#{threat&.description}'. Использовали ли они особенности бункера (например, #{bunker_features.map { |f| f['name'] }.join(' и ')}) в сюжете. и/или навыки (СИНЕРГИИ)?\n"
-    prompt += "3. Включи в описание попытки группы выполнить их главный долг — размножение, и то, как болезни/тайны этому мешали или помогали.\n"
-    prompt += "4. Учти в сюжете использованные карты действий (особенно если они изменили состав бункера или ресурсы).\n"
-    prompt += "5. Опиши кульминацию: как их навыки, болезни и багаж помогли или помешали им выжить #{bunker_duration} лет в условиях '#{bunker_size}' и '#{bunker_supplies}'.\n"
-    prompt += "6. Был ли у них шанс на возрождение человечества (учитывая пол и бесплодие)?\n"
-    prompt += "7.СУДЬБА ИЗГНАННЫХ (ЖЕСТКО): Шанс выжить снаружи — ВСЕГО 7%. Это почти НОЛЬ. В 9 случаях из 10 изгнанные должны ПОГИБНУТЬ мучительной смертью в первые же месяцы. Пиши о выживании изгнанного только если его набор карт (профессия + багаж) — это абсолютное комбо для данной катастрофы. В остальном — описывай их гибель.\n"
-    prompt += "8. ИТОГ: Что стало с человечеством через #{bunker_duration} лет? Чем закончилась их история, когда двери бункера открылись? Напиши драматичный финал. Не ограничивайся группой. Напиши, что случилось с цивилизацией во всем мире. Есть ли другие очаги жизни?"
-    prompt += "9. СУДЬБА ДЕТЕЙ: Опиши судьбу ребенка, родившегося в бункере. Как он выглядит, во что верит и готов ли он выйти в мир, который никогда не видел?\n"
+    prompt += "Напиши ИСТОРИЮ (не список фактов!) на основе данных выше. Структура:\n"
+    prompt += "1. БЫТЬ В БУНКЕРЕ: Повседневная жизнь, конфликты, тайны. Как вскрытые карты меняли отношения?\n"
+    prompt += "2. ПРОИСШЕСТВИЕ: Как группа справилась с '#{threat&.name}'? Использовали ли особенности бункера и синергии?\n"
+    prompt += "3. РАЗМНОЖЕНИЕ: Попытки продолжить род. Кто с кем? Что мешало? Опиши Дитя Бункера если родилось.\n"
+    prompt += "4. КАРТЫ ДЕЙСТВИЙ: Как использованные спец. карты повлияли на сюжет?\n"
+    prompt += "5. КУЛЬМИНАЦИЯ: Как навыки, болезни, багаж помогли/помешали выжить #{bunker_duration} лет?\n"
+    prompt += "6. СУДЬБА ИЗГНАННЫХ: Шанс выжить снаружи — 7%. Обычно это СМЕРТЬ. Исключение — идеальное комбо карт для данной катастрофы.\n"
+    prompt += "7. ПРОИГРЫШ ВОЗМОЖЕН: Если маньяк не раскрыт, болезни смертельны, нет врача — группа может ПОГИБНУТЬ. Не бойся писать трагический финал.\n"
+    prompt += "8. ФИНАЛ: Что стало с человечеством через #{bunker_duration} лет? Двери открылись — что снаружи? Есть ли другие выжившие?\n"
+    prompt += "9. ДИТЯ БУНКЕРА: Если родился ребёнок — опиши его судьбу, характер, готовность к новому миру.\n"
 
     prompt
   end

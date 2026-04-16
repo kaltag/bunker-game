@@ -1,0 +1,132 @@
+<%= turbo_stream_from @game %>
+
+<div class="min-h-dvh bg-gray-950 text-white font-sans safe-px safe-pb"
+     data-controller="refresh" data-refresh-interval-value="3">
+  <div class="max-w-2xl mx-auto px-4 py-6 sm:py-10">
+
+    <!-- Заголовок -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl sm:text-5xl font-extrabold text-red-500 uppercase tracking-tighter drop-shadow-lg mb-2">БУНКЕР</h1>
+      <p class="text-gray-400 text-sm sm:text-base">Лобби — ожидание игроков</p>
+    </div>
+
+    <!-- Код партии + QR -->
+    <div class="panel p-5 sm:p-8 mb-6 text-center">
+      <p class="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2">Код партии</p>
+      <p class="text-4xl sm:text-5xl font-mono font-black text-white tracking-widest select-all mb-5"><%= @game.code %></p>
+
+      <!-- QR-код -->
+      <% lobby_url = lobby_game_url(@game) %>
+      <% qr = RQRCode::QRCode.new(lobby_url) %>
+      <div class="flex flex-col items-center gap-4 mb-5">
+        <div class="bg-white p-3 rounded-xl inline-block">
+          <%= qr.as_svg(module_size: 4, standalone: true, use_path: true).html_safe %>
+        </div>
+        <div class="w-full">
+          <p class="text-gray-500 text-xs uppercase font-bold tracking-widest mb-2">Или отправь ссылку:</p>
+          <div class="flex gap-2">
+            <input type="text" value="<%= lobby_url %>" readonly
+                   class="flex-1 bg-gray-900 border border-gray-700 text-gray-300 text-xs sm:text-sm rounded-lg px-3 py-2.5 select-all truncate">
+            <button onclick="navigator.clipboard.writeText('<%= lobby_url %>'); this.innerText='✓'; setTimeout(() => this.innerText='Копировать', 1500)"
+                    class="btn-game bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-4 text-xs shrink-0">
+              Копировать
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Список игроков -->
+    <div class="panel p-5 sm:p-6 mb-6">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg sm:text-xl font-black text-gray-200 uppercase tracking-wide">
+          Игроки
+        </h2>
+        <span class="text-sm sm:text-base font-mono font-bold <%= @players.count >= 6 ? 'text-green-400' : 'text-yellow-500' %>">
+          <%= @players.count %> / <%= @max_players %>
+        </span>
+      </div>
+
+      <% if @players.any? %>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+          <% @players.each do |player| %>
+            <div class="bg-gray-900 rounded-xl p-3 sm:p-4 border-2 border-gray-700 flex items-center gap-2.5"
+                 style="border-left-color: <%= player.color || '#6B7280' %>; border-left-width: 4px;">
+              <span class="text-xl sm:text-2xl"><%= player.avatar_emoji || '👤' %></span>
+              <div class="min-w-0">
+                <p class="text-sm sm:text-base font-bold text-white truncate"><%= player.name %></p>
+                <% if session["player_#{player.id}"] %>
+                  <p class="text-[10px] text-green-400 font-bold uppercase">Это вы</p>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <!-- Пустые слоты -->
+          <% (@max_players - @players.count).times do %>
+            <div class="bg-gray-900/50 rounded-xl p-3 sm:p-4 border-2 border-dashed border-gray-700 flex items-center justify-center">
+              <span class="text-gray-600 text-sm font-bold uppercase tracking-wider">Пусто</span>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <p class="text-gray-500 text-center py-6 text-sm italic">Пока никто не присоединился. Поделитесь QR-кодом!</p>
+      <% end %>
+    </div>
+
+    <!-- Форма входа (только если игрок ещё не в игре и есть место) -->
+    <% if !@my_player && !@game.lobby_full? && !current_host? %>
+      <div class="panel p-5 sm:p-6 mb-6">
+        <h2 class="text-base sm:text-lg font-black text-gray-200 uppercase tracking-wide mb-4">Присоединиться</h2>
+        <%= form_with url: game_players_path(@game), method: :post, class: "space-y-4" do |f| %>
+          <%= f.text_field :name, placeholder: "Ваше имя...", required: true, autocomplete: "off",
+              class: "w-full bg-gray-900 border border-gray-700 text-white rounded-xl py-3.5 px-4 text-center text-lg focus:ring-red-500 focus:border-red-500 shadow-inner",
+              name: "player[name]" %>
+
+          <div>
+            <p class="text-gray-400 text-xs uppercase font-bold tracking-widest mb-2">Выберите аватар:</p>
+            <div class="flex flex-wrap gap-2">
+              <% Player::AVATAR_EMOJIS.each_with_index do |emoji, i| %>
+                <label class="cursor-pointer">
+                  <input type="radio" name="avatar_emoji" value="<%= emoji %>" class="peer sr-only" <%= 'checked' if i == 0 %>>
+                  <div class="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center rounded-xl border-2 border-gray-700 bg-gray-900
+                              peer-checked:border-red-500 peer-checked:bg-red-900/30 transition-all text-xl sm:text-2xl">
+                    <%= emoji %>
+                  </div>
+                </label>
+              <% end %>
+            </div>
+          </div>
+
+          <%= f.submit "ПРИСОЕДИНИТЬСЯ", class: "btn-primary w-full" %>
+        <% end %>
+      </div>
+    <% elsif @my_player && @game.preparing? %>
+      <div class="panel p-5 sm:p-6 mb-6 text-center">
+        <p class="text-green-400 font-bold text-sm sm:text-base uppercase tracking-widest mb-2">Вы в игре!</p>
+        <p class="text-gray-400 text-sm">Ожидайте, пока ведущий запустит партию...</p>
+      </div>
+    <% end %>
+
+    <!-- Кнопка старта (только ведущий) -->
+    <% if current_host? %>
+      <div class="space-y-3">
+        <% if @game.ready_to_start? %>
+          <%= button_to "НАЧАТЬ ИГРУ", start_game_game_path(@game), method: :post,
+              class: "btn-primary w-full text-lg py-5" %>
+        <% else %>
+          <div class="text-center py-4">
+            <p class="text-yellow-500 font-bold text-sm uppercase tracking-widest">Минимум 6 игроков для старта</p>
+          </div>
+        <% end %>
+
+        <% if Rails.env.development? && !@game.lobby_full? %>
+          <% empty_slots = @game.max_players - @game.players.count %>
+          <%= button_to "DEV: Добавить #{empty_slots} ботов", fill_bots_game_path(@game), method: :post,
+              class: "btn-game w-full bg-gray-700 hover:bg-gray-600 text-gray-300 py-3 text-xs" %>
+        <% end %>
+      </div>
+    <% end %>
+
+  </div>
+</div>
