@@ -1,7 +1,8 @@
 class GamesController < ApplicationController
   include GameFindable
 
-  before_action :set_game, only: %i[show report start_raid reveal_next_round reveal_threat reveal_raid_system clear_raid_report]
+  before_action :set_game, only: %i[show board report start_raid reveal_next_round reveal_threat reveal_raid_system clear_raid_report]
+  before_action :require_host!, only: %i[show report start_raid reveal_next_round reveal_threat reveal_raid_system clear_raid_report]
 
   def new
     @game = Game.new
@@ -14,10 +15,19 @@ class GamesController < ApplicationController
     @game = Game.create!(status: "preparing", catastrophe: random_catastrophe)
     GameGenerator.new(@game).call(count)
 
+    # Сохраняем host_token в session — только создатель может управлять игрой
+    session["host_#{@game.id}"] = @game.host_token
+
     redirect_to game_path(@game), notice: "Партия на #{count} чел. готова!"
   end
 
   def show
+    @players = @game.players.includes(player_cards: :card).order(:id)
+  end
+
+  # Публичная доска — то же что show, но без кнопок управления.
+  # Игроки открывают эту страницу, чтобы видеть катастрофу, раунды, кто что вскрыл.
+  def board
     @players = @game.players.includes(player_cards: :card).order(:id)
   end
 
@@ -27,14 +37,15 @@ class GamesController < ApplicationController
   end
 
   def start_raid
-    if params[:raider_ids].present?
+    raider_ids = Array(params[:raider_ids]).map(&:to_i).select(&:positive?)
+
+    if raider_ids.any?
       raid = Raid.order("RANDOM()").first
 
       @game.players.update_all(raid_outcome: nil)
-      @game.players.where(id: params[:raider_ids]).update_all(raid_status: "raiding")
+      @game.players.where(id: raider_ids).update_all(raid_status: "raiding")
       @game.update!(active_raid_id: raid.id, raid_candidate_ids: [])
 
-      # update_all не запускает колбэки — ручной broadcast обязателен
       Turbo::StreamsChannel.broadcast_refresh_to(@game)
 
       redirect_to game_path(@game), notice: "Группа отправилась в рейд!"

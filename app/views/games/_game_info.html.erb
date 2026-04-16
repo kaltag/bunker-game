@@ -54,8 +54,10 @@
             <% else %>
               <div class="col-span-2 md:col-span-4 bg-red-900/20 p-4 md:p-5 rounded-xl border border-red-800/50 mt-1 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <span class="text-gray-500 text-xs font-bold uppercase tracking-widest">Внезапная угроза (Скрыто)</span>
-                <%= button_to "АКТИВИРОВАТЬ", reveal_threat_game_path(game), method: :post,
-                    class: "btn-game bg-red-600/20 hover:bg-red-600 border border-red-600 text-red-400 hover:text-white py-2.5 px-5 text-xs shrink-0" %>
+                <% if current_host? %>
+                  <%= button_to "АКТИВИРОВАТЬ", reveal_threat_game_path(game), method: :post,
+                      class: "btn-game bg-red-600/20 hover:bg-red-600 border border-red-600 text-red-400 hover:text-white py-2.5 px-5 text-xs shrink-0" %>
+                <% end %>
               </div>
             <% end %>
           </div>
@@ -94,28 +96,32 @@
                     </div>
                   </div>
 
-                  <!-- Форма выбора рейдеров -->
-                  <%= form_with url: start_raid_game_path(game), method: :post, class: "space-y-4" do |f| %>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 md:gap-3">
-                      <% game.players.where(eliminated: false).each do |p| %>
-                        <label class="relative cursor-pointer block">
-                          <%= check_box_tag "raider_ids[]", p.id, false, class: "peer sr-only" %>
-                          <div class="flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border-2 border-indigo-900/50 bg-gray-900/50 peer-checked:bg-indigo-600 peer-checked:border-indigo-400 peer-checked:text-white peer-checked:shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all h-full text-gray-300">
-                            <p class="text-xs md:text-sm font-medium text-center w-full truncate">
-                              <%= p.display_name %>
-                            </p>
-                            <p class="text-[10px] md:text-xs font-bold text-indigo-400 truncate w-full text-center mt-1" title="<%= p.profession&.name || 'Скрыто' %>">
-                              <%= p.profession&.name || 'Скрыто' %>
-                            </p>
-                            <!-- Галочка -->
-                            <div class="absolute -top-1.5 -right-1.5 bg-indigo-400 text-white rounded-full p-0.5 opacity-0 peer-checked:opacity-100 transition-opacity shadow-lg">
-                              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                  <!-- Форма выбора рейдеров (только для ведущего) -->
+                  <% if current_host? %>
+                    <%= form_with url: start_raid_game_path(game), method: :post, class: "space-y-4" do |f| %>
+                      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5 md:gap-3">
+                        <% game.players.where(eliminated: false).each do |p| %>
+                          <label class="relative cursor-pointer block">
+                            <%= check_box_tag "raider_ids[]", p.id, false, class: "peer sr-only" %>
+                            <div class="flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border-2 border-indigo-900/50 bg-gray-900/50 peer-checked:bg-indigo-600 peer-checked:border-indigo-400 peer-checked:text-white peer-checked:shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all h-full text-gray-300">
+                              <p class="text-xs md:text-sm font-medium text-center w-full truncate">
+                                <%= p.display_name %>
+                              </p>
+                              <p class="text-[10px] md:text-xs font-bold text-indigo-400 truncate w-full text-center mt-1" title="<%= p.profession&.name || 'Скрыто' %>">
+                                <%= p.profession&.name || 'Скрыто' %>
+                              </p>
+                              <!-- Галочка -->
+                              <div class="absolute -top-1.5 -right-1.5 bg-indigo-400 text-white rounded-full p-0.5 opacity-0 peer-checked:opacity-100 transition-opacity shadow-lg">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                              </div>
                             </div>
-                          </div>
-                        </label>
-                      <% end %>
-                    </div>
-                    <%= f.submit "ПОДТВЕРДИТЬ СОСТАВ И ОТПРАВИТЬ", class: "btn-game bg-indigo-600 hover:bg-indigo-500 text-white w-full py-4 md:py-5 mt-3" %>
+                          </label>
+                        <% end %>
+                      </div>
+                      <%= f.submit "ПОДТВЕРДИТЬ СОСТАВ И ОТПРАВИТЬ", class: "btn-game bg-indigo-600 hover:bg-indigo-500 text-white w-full py-4 md:py-5 mt-3" %>
+                    <% end %>
+                  <% else %>
+                    <p class="text-indigo-300/60 text-sm text-center italic py-4">Ведущий выбирает состав группы...</p>
                   <% end %>
                 <% end %>
 
@@ -123,8 +129,10 @@
                 <!-- Заглушка системы рейдов -->
                 <div class="p-5 md:p-6 text-center">
                   <p class="text-gray-500 text-xs font-bold uppercase tracking-[0.2em] sm:tracking-[0.3em] mb-4">Внешние вылазки заблокированы</p>
-                  <%= button_to "РАЗБЛОКИРОВАТЬ СИСТЕМУ РЕЙДОВ", reveal_raid_system_game_path(game), method: :post,
-                      class: "btn-game bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-600 text-indigo-400 hover:text-white py-2.5 px-6 text-[11px] sm:text-xs" %>
+                  <% if current_host? %>
+                    <%= button_to "РАЗБЛОКИРОВАТЬ СИСТЕМУ РЕЙДОВ", reveal_raid_system_game_path(game), method: :post,
+                        class: "btn-game bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-600 text-indigo-400 hover:text-white py-2.5 px-6 text-[11px] sm:text-xs" %>
+                  <% end %>
                 </div>
               <% end %>
             </div>
@@ -136,7 +144,9 @@
             <div class="mt-6 md:mt-8 bg-gray-900 border-2 border-indigo-500 rounded-2xl p-4 sm:p-5 md:p-6 shadow-[0_0_30px_rgba(99,102,241,0.15)]">
               <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-5 gap-3">
                 <h2 class="text-indigo-400 font-black uppercase tracking-widest text-sm md:text-base lg:text-lg">Итоги последней вылазки</h2>
-                <%= button_to "ЗАКРЫТЬ ОТЧЕТ", clear_raid_report_game_path(game), method: :post, class: "btn-game bg-gray-700 text-white py-2 px-4 text-xs hover:bg-gray-600 shrink-0" %>
+                <% if current_host? %>
+                  <%= button_to "ЗАКРЫТЬ ОТЧЕТ", clear_raid_report_game_path(game), method: :post, class: "btn-game bg-gray-700 text-white py-2 px-4 text-xs hover:bg-gray-600 shrink-0" %>
+                <% end %>
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
@@ -164,7 +174,16 @@
           <div class="bg-gray-700 p-4 md:p-5 rounded-2xl border border-gray-600 shadow-inner text-center lg:text-right">
             <p class="text-gray-400 text-xs uppercase font-bold tracking-widest mb-1">Код партии</p>
             <p class="text-3xl md:text-4xl font-mono font-black text-white tracking-widest select-all"><%= game.code %></p>
+            <% unless current_host? %>
+              <p class="text-gray-500 text-[10px] sm:text-xs mt-2 uppercase tracking-wider font-bold">Игровая доска</p>
+            <% end %>
           </div>
+          <% if current_host? %>
+            <a href="<%= board_game_path(game) %>" target="_blank" data-turbo="false" class="block bg-gray-800 hover:bg-gray-700 p-3 md:p-4 rounded-2xl border border-gray-600 text-center transition-colors">
+              <p class="text-gray-400 text-[10px] sm:text-xs uppercase font-bold tracking-widest mb-1">Доска для игроков</p>
+              <p class="text-blue-400 text-xs sm:text-sm font-bold truncate"><%= board_game_url(game) %></p>
+            </a>
+          <% end %>
 
           <div class="bg-gray-900 p-4 sm:p-5 md:p-6 rounded-2xl border border-gray-700 flex flex-col justify-center text-center lg:text-right">
             <p class="text-gray-400 text-sm md:text-base uppercase font-bold mb-2">Раунд: <span class="text-white text-2xl md:text-3xl ml-2"><%= game.current_round %> / 5</span></p>
@@ -183,8 +202,10 @@
                 <p class="text-green-500 text-sm sm:text-base md:text-lg font-black my-4 uppercase tracking-wider bg-green-900/20 py-2 rounded-xl">Состав идеален!</p>
               <% end %>
 
-              <%= button_to "СЛЕДУЮЩИЙ РАУНД", reveal_next_round_game_path(game), method: :post,
-                  class: "btn-primary w-full" %>
+              <% if current_host? %>
+                <%= button_to "СЛЕДУЮЩИЙ РАУНД", reveal_next_round_game_path(game), method: :post,
+                    class: "btn-primary w-full" %>
+              <% end %>
 
             <% else %>
               <!-- ФИНАЛ -->
@@ -196,8 +217,10 @@
                 </div>
               <% else %>
                 <p class="text-gray-300 text-sm md:text-base mb-5 italic">Группа сформирована. Тайны заперты внутри.</p>
-                <%= link_to "ГЕНЕРАЦИЯ ИСТОРИИ", report_game_path(game),
-                    class: "btn-action w-full block text-center" %>
+                <% if current_host? %>
+                  <%= link_to "ГЕНЕРАЦИЯ ИСТОРИИ", report_game_path(game),
+                      class: "btn-action w-full block text-center" %>
+                <% end %>
               <% end %>
             <% end %>
           </div>

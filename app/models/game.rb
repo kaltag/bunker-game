@@ -7,6 +7,7 @@ class Game < ApplicationRecord
   enum :status, { preparing: "preparing", in_progress: "in_progress", finished: "finished" }, default: "preparing"
   # Генерация случайного кода для игры (например "A1B2"), чтобы кидать ссылку друзьям
   before_create :generate_code
+  before_create :generate_host_token
 
   broadcasts_refreshes
 
@@ -173,5 +174,9 @@ class Game < ApplicationRecord
 
   def generate_code
     self.code = SecureRandom.alphanumeric(4).upcase
+  end
+
+  def generate_host_token
+    self.host_token = SecureRandom.urlsafe_base64(16)
   end
 end

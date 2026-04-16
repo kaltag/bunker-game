@@ -7,10 +7,11 @@ Rails.application.routes.draw do
     member do
       post :reveal_next_round
       post :start_raid
-      post :reveal_threat # <--- Вскрыть угрозу
-      post :reveal_raid_system # <--- Вскрыть блок рейдов
+      post :reveal_threat
+      post :reveal_raid_system
       post :clear_raid_report
       get :report
+      get :board  # Публичная доска для игроков (без кнопок управления)
     end
 
     resources :players, only: [ :show, :update ] do

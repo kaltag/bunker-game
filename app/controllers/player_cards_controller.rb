@@ -3,6 +3,7 @@ class PlayerCardsController < ApplicationController
 
   before_action :set_game
   before_action :set_player
+  before_action :require_own_player!
 
   def reveal
     @player_card = @player.player_cards.find(params[:id])

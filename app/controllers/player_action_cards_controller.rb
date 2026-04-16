@@ -3,12 +3,14 @@ class PlayerActionCardsController < ApplicationController
 
   before_action :set_game
   before_action :set_player
+  before_action :require_own_player!
 
   def use
     @player_action_card = @player.player_action_cards.find(params[:id])
     action_card = @player_action_card.action_card
 
-    target = @game.players.find(params[:target_id]) if params[:target_id].present?
+    target_id = params[:target_id].to_i if params[:target_id].present?
+    target = @game.players.find(target_id) if target_id&.positive?
 
     unless @player_action_card.used || @player.eliminated
       active_players = @game.active_players

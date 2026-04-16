@@ -12,6 +12,15 @@
     <% end %>
   </div>
 
+<% elsif !current_player? && !current_host? %>
+  <!-- ЧУЖОЙ ПЕРСОНАЖ -->
+  <div class="flex flex-col items-center justify-center min-h-dvh px-4 safe-px safe-pb text-center">
+    <h1 class="text-3xl sm:text-4xl font-black text-red-500 mb-4 uppercase tracking-widest">Доступ закрыт</h1>
+    <p class="text-gray-400 mb-2 text-sm sm:text-base max-w-md">Этот персонаж уже занят игроком <strong class="text-white"><%= player.display_name %></strong>.</p>
+    <p class="text-gray-500 text-xs sm:text-sm mb-8">Попросите ведущего дать вам вашу ссылку.</p>
+    <%= link_to "На главную", root_path, class: "btn-secondary" %>
+  </div>
+
 <% else %>
 
 <div id="<%= dom_id(player, :screen) %>" class="min-h-dvh bg-gray-950 text-white p-3 sm:p-4 md:p-6 lg:p-8 font-sans pb-20 safe-px safe-pb">

@@ -4,6 +4,8 @@ class Player < ApplicationRecord
   has_many :cards, through: :player_cards
   has_many :player_action_cards, dependent: :destroy
 
+  validates :name, length: { in: 2..30 }, allow_blank: true
+
   # Колбэк: срабатывает прямо перед созданием игрока в базе
   before_create :generate_biological_stats
 
