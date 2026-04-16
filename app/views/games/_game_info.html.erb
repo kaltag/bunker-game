@@ -1,5 +1,5 @@
     <!-- Шапка игры -->
-    <div class="bg-gray-800 rounded-2xl p-5 md:p-8 mb-8 border border-gray-700 shadow-xl">
+    <div id="<%= dom_id(game, :info) %>" class="bg-gray-800 rounded-2xl p-5 md:p-8 mb-8 border border-gray-700 shadow-xl">
       <div class="flex flex-col lg:flex-row justify-between items-start gap-8">
         <div class="flex-1 w-full">
           <h1 class="text-3xl md:text-4xl font-bold text-red-500 mb-2 uppercase tracking-tight">
@@ -60,7 +60,7 @@
           </div>
 
           <!-- Система рейдов -->
-          <div id="raid_system_container">
+          <div id="<%= dom_id(game, :raid_system) %>">
             <div class="mt-8 bg-indigo-900/20 border border-indigo-500/50 rounded-2xl p-5 md:p-6 shadow-2xl">
               <% if game.raid_params_revealed %>
 
@@ -84,7 +84,7 @@
                       <% game.raid_candidates.each do |candidate| %>
                         <div class="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs md:text-sm font-bold shadow">
                           <!-- ЗДЕСЬ ИМЯ -->
-                          <%= candidate.name.presence || "Игрок #{game.players.order(:id).index(candidate) + 1}" %> 
+                          <%= candidate.display_name %> 
                           <span class="text-indigo-200 font-normal hidden sm:inline">
                             (<%= candidate.profession&.name || 'Профессия скрыта' %>)
                           </span>
@@ -104,7 +104,7 @@
                           <div class="flex flex-col items-center justify-center p-3 md:p-4 rounded-xl border-2 border-indigo-900/50 bg-gray-900/50 peer-checked:bg-indigo-600 peer-checked:border-indigo-400 peer-checked:shadow-[0_0_15px_rgba(79,70,229,0.5)] transition-all h-full">
                             
                             <p class="text-xs md:text-sm font-medium text-gray-300 peer-checked:text-white text-center w-full truncate">
-                              <%= p.name.presence || "Игрок #{game.players.order(:id).index(p) + 1}" %>
+                              <%= p.display_name %>
                             </p>
                             
                             <p class="text-[10px] md:text-xs font-bold text-indigo-400 peer-checked:text-indigo-200 truncate w-full text-center mt-1" title="<%= p.profession&.name || 'Скрыто' %>">
@@ -140,14 +140,14 @@
             <div class="mt-8 bg-gray-900 border-2 border-indigo-500 rounded-2xl p-5 md:p-6 shadow-[0_0_30px_rgba(99,102,241,0.15)] relative">
               <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-4">
                 <h2 class="text-indigo-400 font-black uppercase tracking-widest text-base md:text-lg">📢 Итоги последней вылазки</h2>
-                <%= button_to "ЗАКРЫТЬ ОТЧЕТ", game_path(game), method: :get, class: "text-xs md:text-sm bg-gray-700 text-white font-bold px-4 py-2 rounded-lg hover:bg-gray-600 transition" %>
+                <%= button_to "ЗАКРЫТЬ ОТЧЕТ", clear_raid_report_game_path(game), method: :post, class: "text-xs md:text-sm bg-gray-700 text-white font-bold px-4 py-2 rounded-lg hover:bg-gray-600 transition" %>
               </div>
               
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <% recent_raiders.each do |p| %>
-                  <div class="flex flex-col gap-2 p-4 rounded-xl bg-gray-800 border-l-4 shadow-md <%= p.raid_status == 'dead' ? 'border-red-600' : 'border-green-500' %>">
+                  <div id="<%= dom_id(p, :raid_result) %>" class="flex flex-col gap-2 p-4 rounded-xl bg-gray-800 border-l-4 shadow-md <%= p.raid_status == 'dead' ? 'border-red-600' : 'border-green-500' %>">
                     <div class="font-black text-indigo-300 text-sm md:text-base">
-                       <%= p.name.presence || "Игрок #{game.players.order(:id).index(p) + 1}" %>:
+                       <%= p.display_name %>:
                     </div>
                     <div class="text-sm md:text-base text-gray-300 leading-snug">
                       <span class="font-black uppercase text-xs md:text-sm mr-1 <%= p.raid_status == 'dead' ? 'text-red-500 bg-red-900/30 px-2 py-1 rounded' : 'text-green-400 bg-green-900/30 px-2 py-1 rounded' %>">
@@ -164,7 +164,7 @@
         </div>
         
         <!-- Правая панель (Статус игры) -->
-        <div class="flex flex-col gap-4 w-full lg:w-80 flex-shrink-0">
+        <div id="<%= dom_id(game, :status) %>" class="flex flex-col gap-4 w-full lg:w-80 flex-shrink-0">
           <div class="bg-gray-700 p-5 rounded-2xl border border-gray-600 shadow-inner text-center lg:text-right">
             <p class="text-gray-400 text-xs md:text-sm uppercase font-bold tracking-widest mb-1">Код партии</p>
             <p class="text-3xl md:text-4xl font-mono font-black text-white tracking-widest select-all"><%= game.code %></p>

@@ -1,7 +1,10 @@
 class PlayerCardsController < ApplicationController
+  include GameFindable
+
+  before_action :set_game
+  before_action :set_player
+
   def reveal
-    @game = Game.find(params[:game_id])
-    @player = @game.players.find(params[:player_id])
     @player_card = @player.player_cards.find(params[:id])
 
     if @player.can_reveal_more?

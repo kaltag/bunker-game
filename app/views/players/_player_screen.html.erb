@@ -15,7 +15,7 @@
 
 <% else %>
 
-<div id="player_<%= player.id %>_screen" class="min-h-screen bg-black text-white p-4 md:p-8 font-sans pb-24">
+<div id="<%= dom_id(player, :screen) %>" class="min-h-screen bg-black text-white p-4 md:p-8 font-sans pb-24">
   <!-- Расширенный контейнер для ПК -->
   <div class="max-w-5xl mx-auto">
     
@@ -74,18 +74,14 @@
                   <%= form_with url: use_game_player_player_action_card_path(game, player, action_link), method: :post, class: "relative z-10" do |f| %>
                     <% if action_card.requires_target %>
                       <!-- ИСПРАВЛЕННЫЙ RUBY БЛОК ДЛЯ SELECT -->
-                      <%= f.select :target_id, 
-                        game.players.where(eliminated: false).map { |p| 
-                          idx = game.players.order(:id).index(p) + 1
-                          display_name = p.name.presence || "Игрок #{idx}"
+                      <%= f.select :target_id,
+                        game.players.where(eliminated: false).map { |p|
                           prof_pc = p.player_cards.joins(:card).find_by(cards: { category: 'profession' })
                           prof_text = prof_pc&.revealed ? prof_pc.card.name : "Скрыто"
-                          
-                          # Формируем элемент массива [текст, значение]
-                          label_text = "#{display_name} (#{prof_text})"
+                          label_text = "#{p.display_name} (#{prof_text})"
                           label_text += " [Вы]" if p == player
-                          [label_text, p.id] 
-                        }, 
+                          [label_text, p.id]
+                        },
                         { include_blank: "Выберите цель..." }, 
                         class: "w-full bg-gray-900 border border-purple-800 text-white rounded-xl p-3 text-sm md:text-base mb-3 truncate focus:ring-purple-500 focus:border-purple-500 appearance-none" %>
                     <% end %>
@@ -134,7 +130,7 @@
         <h2 class="text-sm md:text-base font-black text-gray-500 uppercase tracking-[0.2em] ml-2 mb-4 hidden lg:block">Карты Характеристик</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <% player.ordered_player_cards.each do |pc| %>
-            <div class="bg-gray-800 rounded-2xl p-6 border-l-[6px] shadow-lg flex flex-col <%= pc.revealed ? 'border-green-500 bg-gray-800/80' : 'border-blue-500 hover:border-blue-400 transition-colors' %>">
+            <div id="<%= dom_id(pc, :card) %>" class="bg-gray-800 rounded-2xl p-6 border-l-[6px] shadow-lg flex flex-col <%= pc.revealed ? 'border-green-500 bg-gray-800/80' : 'border-blue-500 hover:border-blue-400 transition-colors' %>">
               
               <div class="flex justify-between items-start mb-3">
                 <p class="text-xs md:text-sm text-gray-400 uppercase font-black tracking-widest"><%= pc.card.category %></p>

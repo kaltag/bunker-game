@@ -9,6 +9,7 @@ Rails.application.routes.draw do
       post :start_raid
       post :reveal_threat # <--- Вскрыть угрозу
       post :reveal_raid_system # <--- Вскрыть блок рейдов
+      post :clear_raid_report
       get :report
     end
 

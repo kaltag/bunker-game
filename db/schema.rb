@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2026_04_09_091944) do
+ActiveRecord::Schema[8.0].define(version: 2026_04_16_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -90,6 +90,7 @@ ActiveRecord::Schema[8.0].define(version: 2026_04_09_091944) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.integer "severity"
+    t.boolean "bonus", default: false, null: false
     t.index ["card_id"], name: "index_player_cards_on_card_id"
     t.index ["player_id"], name: "index_player_cards_on_player_id"
   end

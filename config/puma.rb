@@ -30,6 +30,11 @@ threads threads_count, threads_count
 # Specifies the `port` that Puma will listen on to receive requests; default is 3000.
 port ENV.fetch("PORT", 3000)
 
+# Async-адаптер ActionCable работает только внутри одного процесса.
+# На Render Free Tier нет Redis, поэтому WEB_CONCURRENCY ДОЛЖЕН быть 0 (без воркеров).
+# Puma будет обслуживать запросы в потоках внутри одного мастер-процесса.
+workers ENV.fetch("WEB_CONCURRENCY", 0)
+
 # Allow puma to be restarted by `bin/rails restart` command.
 plugin :tmp_restart
 

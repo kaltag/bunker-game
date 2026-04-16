@@ -53,7 +53,7 @@ class RaidResolver
   def self.give_luggage(player, tier)
     card = Card.where(category: "luggage", tier: tier).where.not(id: player.cards.ids).order("RANDOM()").first
     if card
-      PlayerCard.create!(player: player, card: card, revealed: true)
+      PlayerCard.create!(player: player, card: card, revealed: true, bonus: true)
       card.name
     end
   end
@@ -78,14 +78,12 @@ class RaidResolver
                             .order("RANDOM()").first
 
       if bad_health_card
-        # Принудительно вскрываем новую болезнь, чтобы все видели ранение
-        health_pc.update!(card: bad_health_card, severity: 40, revealed: true)
+        health_pc.update!(card: bad_health_card, severity: 40)
       end
     else
       # Игрок уже был болен -> УВЕЛИЧИВАЕМ тяжесть
-      # Если severity был nil (мало ли), считаем его за 20
       current_severity = health_pc.severity || 20
-      health_pc.update!(severity: [ current_severity + 30, 100 ].min, revealed: true)
+      health_pc.update!(severity: [ current_severity + 30, 100 ].min)
     end
   end
 end

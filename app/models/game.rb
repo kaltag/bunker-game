@@ -12,35 +12,44 @@ class Game < ApplicationRecord
 
   # Динамический расчет: сколько человек выгоняем в текущем раунде
   def eliminations_this_round
-    # Считаем только ЖИВЫХ (не изгнанных) игроков
-    active_players = players.where(eliminated: false).count
-    total_to_eliminate = active_players - bunker_capacity
-
-    # Если выгонять больше некого или мы в финале
+    total_to_eliminate = total_remaining_eliminations
     return 0 if total_to_eliminate <= 0 || current_round > 5
 
-    # Сколько раундов осталось до конца (включая текущий)
     remaining_rounds = 5 - current_round + 1
-
-    # Равномерно распределяем оставшиеся изгнания
     base = total_to_eliminate / remaining_rounds
-
-    # Округляем так, чтобы хотя бы 1 человек выбывал, если есть лишние
     base = 1 if base == 0 && total_to_eliminate > 0
-
     base
   end
 
-  # Добавим удобный метод, чтобы знать, сколько ВООБЩЕ осталось выгнать до финала
   def total_remaining_eliminations
-    active_players = players.where(eliminated: false).count
-    remaining = active_players - bunker_capacity
+    remaining = active_players.count - bunker_capacity
     remaining > 0 ? remaining : 0
   end
 
+  def active_players
+    players.where(eliminated: false)
+  end
+
   def raid_candidates
-    # Выбираем 3 случайных игрока, которые не изгнаны
-    players.where(eliminated: false).order("RANDOM()").limit(3)
+    active_players.order("RANDOM()").limit(3)
+  end
+
+  # Завершает активный рейд: разрешает исходы для всех рейдеров
+  def resolve_active_raid!
+    return unless active_raid_id.present?
+
+    raid = Raid.find(active_raid_id)
+    players.where(raid_status: "raiding").find_each do |player|
+      RaidResolver.call(player, raid)
+    end
+
+    update!(active_raid_id: nil, raid_params_revealed: false)
+  end
+
+  # Переход к следующему раунду с разрешением рейда
+  def advance_round!
+    resolve_active_raid!
+    update!(current_round: current_round + 1) if current_round <= 5
   end
 
   # Генерация идеального промпта для ИИ
@@ -57,9 +66,8 @@ class Game < ApplicationRecord
     bunker_features.each { |f| prompt += "- #{f['name']}: #{f['description']}\n" }
     prompt += "Происшествие: #{threat&.name} (#{threat&.description})\n\n"
 
-    format_player_data = ->(p, i, label) do
-      d_name = p.name.presence || "Игрок #{i+1}"
-      res = "#{label}: #{d_name} (#{p.gender}, #{p.age} лет, #{p.is_infertile ? 'Бесплоден' : 'Способен к размножению'}):\n"
+    format_player_data = ->(p, _i, label) do
+      res = "#{label}: #{p.display_name} (#{p.gender}, #{p.age} лет, #{p.is_infertile ? 'Бесплоден' : 'Способен к размножению'}):\n"
       p.ordered_player_cards.each do |pc|
         status = pc.revealed ? "" : "[ТАЙНА]"
         details = pc.card.name
@@ -75,12 +83,8 @@ class Game < ApplicationRecord
     used_cards = PlayerActionCard.joins(:player).where(players: { game_id: id }, used: true)
 
     if used_cards.any?
-      used_cards.each do |link|
-        p = link.player
-        idx = players.order(:id).index(p) + 1
-        display_name = p.name.presence || "Игрок #{idx}"
-
-        prompt += "- #{display_name} разыграл карту: '#{link.action_card.name}'.\n"
+      used_cards.includes(:action_card, :player).each do |link|
+        prompt += "- #{link.player.display_name} разыграл карту: '#{link.action_card.name}'.\n"
       end
     else
       prompt += "Спец. карты не использовались.\n"
@@ -104,9 +108,9 @@ class Game < ApplicationRecord
 
     if geneticist
       if infertile_survivors.any?
-        prompt += "2. НАУЧНЫЙ ПРОРЫВ: Генетик (#{geneticist.name}) использует передовые технологии для ИЗЛЕЧЕНИЯ биологического бесплодия у следующих выживших: #{infertile_survivors.map(&:name).join(', ')}. Это ПРИОРИТЕТНАЯ задача. Опиши, как благодаря науке те, кто считался бесплодным, получили шанс стать родителями.\n"
+        prompt += "2. НАУЧНЫЙ ПРОРЫВ: Генетик (#{geneticist.display_name}) использует передовые технологии для ИЗЛЕЧЕНИЯ биологического бесплодия у следующих выживших: #{infertile_survivors.map(&:display_name).join(', ')}. Это ПРИОРИТЕТНАЯ задача. Опиши, как благодаря науке те, кто считался бесплодным, получили шанс стать родителями.\n"
       else
-        prompt += "2. НАУЧНЫЙ ПРОРЫВ: Генетик (#{geneticist.name}) гарантирует идеальное здоровье будущих детей, исправляя любые генетические дефекты у фертильных членов группы.\n"
+        prompt += "2. НАУЧНЫЙ ПРОРЫВ: Генетик (#{geneticist.display_name}) гарантирует идеальное здоровье будущих детей, исправляя любые генетические дефекты у фертильных членов группы.\n"
       end
     end
 
@@ -115,12 +119,12 @@ class Game < ApplicationRecord
         next if p1 == p2
         # Психология: ПОЛНОЕ ИЗЛЕЧЕНИЕ
         if p1.profession&.tags.to_s.include?("mental_health") && p2.phobia&.tags.to_s.include?("panic")
-          prompt += "- ПРАВИЛО: Психолог (#{p1.profession.name}) ПОЛНОСТЬЮ излечивает фобию '#{p2.phobia.name}' у #{p2.name.presence || 'соседа'}.\n"
+          prompt += "- ПРАВИЛО: Психолог (#{p1.profession.name}) ПОЛНОСТЬЮ излечивает фобию '#{p2.phobia.name}' у #{p2.display_name}.\n"
         end
 
         # Медицина: ПОЛНОЕ ИЗЛЕЧЕНИЕ
         if p1.profession&.tags.to_s.include?("medical") && p2.health&.is_curable && p2.health&.tags.to_s.match?(/physical|disease|injury/)
-          prompt += "- ПРАВИЛО: Врач (#{p1.profession.name}) ГАРАНТИРОВАННО вылечивает болезнь '#{p2.health.name}' у Игрока #{survivors.index(p2)+1}. Игрок становится полностью трудоспособен.\n"
+          prompt += "- ПРАВИЛО: Врач (#{p1.profession.name}) ГАРАНТИРОВАННО вылечивает болезнь '#{p2.health.name}' у #{p2.display_name}. Игрок становится полностью трудоспособен.\n"
         end
 
         # Техника: БЕЗУСЛОВНЫЙ УСПЕХ
@@ -135,9 +139,6 @@ class Game < ApplicationRecord
 
     if raid_events.any?
       raid_events.each do |p|
-        idx = players.order(:id).index(p) + 1
-        display_name = p.name.presence || "Игрок #{idx}"
-
         status_text = case p.raid_status
         when "returned_triumph" then "Триумфальное возвращение: нашел ценные ресурсы и новые инструкции."
         when "returned_success" then "Успех: вернулся с полезным багажом."
@@ -145,7 +146,7 @@ class Game < ApplicationRecord
         when "returned_injured" then "Трагедия: вернулся с тяжелыми ранениями/болезнью."
         when "dead" then "Героическая гибель: не вернулся из вылазки."
         end
-        prompt += "- #{display_name} (#{p.profession&.name || 'Профессия скрыта'}): #{status_text}\n"
+        prompt += "- #{p.display_name} (#{p.profession&.name || 'Профессия скрыта'}): #{status_text}\n"
       end
     else
       prompt += "За всю игру группа ни разу не рискнула выйти наружу.\n"

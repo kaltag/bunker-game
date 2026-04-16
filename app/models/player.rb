@@ -3,44 +3,16 @@ class Player < ApplicationRecord
   has_many :player_cards, dependent: :destroy
   has_many :cards, through: :player_cards
   has_many :player_action_cards, dependent: :destroy
-  after_commit -> { broadcast_refresh_to(game) }, on: :update
-
-  broadcasts_refreshes
 
   # Колбэк: срабатывает прямо перед созданием игрока в базе
   before_create :generate_biological_stats
 
-  # Удобные методы для карточек
-  def profession
-    cards.find_by(category: "profession")
+  %w[profession health luggage phobia hobby fact].each do |cat|
+    define_method(cat) { cards.find_by(category: cat) }
   end
 
-  def health
-    cards.find_by(category: "health")
-  end
-
-  def luggage
-    cards.find_by(category: "luggage")
-  end
-
-  def phobia
-    cards.find_by(category: "phobia")
-  end
-
-  def hobby
-    cards.find_by(category: "hobby")
-  end
-
-  def fact
-    cards.find_by(category: "fact")
-  end
-
-  def all_luggage
-    cards.where(category: "luggage")
-  end
-
-  def all_action_cards
-    action_cards # через связь has_many :action_cards, through: :player_action_cards
+  def display_name
+    name.presence || "Игрок #{game.players.order(:id).index(self) + 1}"
   end
 
   def ordered_player_cards
@@ -53,9 +25,9 @@ class Player < ApplicationRecord
     end
   end
 
-  # Сколько всего категорий сейчас открыто у игрока
+  # Сколько базовых карт (без бонусных из рейдов) открыто у игрока
   def total_revealed_count
-    count = player_cards.where(revealed: true).count
+    count = player_cards.where(revealed: true, bonus: false).count
     count += 1 if biology_revealed
     count
   end

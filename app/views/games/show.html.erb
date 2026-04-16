@@ -1,12 +1,12 @@
 <%= turbo_stream_from @game %>
 
-<div class="min-h-screen bg-gray-900 text-white p-4 md:p-6 lg:p-8 font-sans">
+<div id="<%= dom_id(@game, :show) %>" class="min-h-screen bg-gray-900 text-white p-4 md:p-6 lg:p-8 font-sans">
   <div class="max-w-[1400px] mx-auto">
 
     <%= render "games/game_info", game: @game %>
-    
-    <!-- Список карточек игроков (Улучшенная сетка) -->
-    <div id="players_grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 md:gap-6">
+
+    <!-- Список карточек игроков -->
+    <div id="<%= dom_id(@game, :players_grid) %>" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 md:gap-6">
       <% @players.each do |player| %>
         <%= render "players/host_card", player: player %>
       <% end %>

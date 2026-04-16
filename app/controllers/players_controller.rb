@@ -1,16 +1,14 @@
 class PlayersController < ApplicationController
-  def show
-    @game = Game.find(params[:game_id])
-    @player = @game.players.includes(player_cards: :card).find(params[:id])
+  include GameFindable
 
-    # Чтобы игрок случайно не подсмотрел чужие карты,
-    # мы убеждаемся, что он открыл именно своего игрока из этой игры.
+  before_action :set_game
+  before_action :set_player
+
+  def show
+    @player = @game.players.includes(player_cards: :card).find(@player.id)
   end
 
   def update
-    @game = Game.find(params[:game_id])
-    @player = @game.players.find(params[:id])
-
     if @player.update(player_params)
       redirect_to game_player_path(@game, @player)
     else
@@ -19,9 +17,6 @@ class PlayersController < ApplicationController
   end
 
   def reveal_biology
-    @game = Game.find(params[:game_id])
-    @player = @game.players.find(params[:id])
-
     if @player.can_reveal_more?
       @player.update(biology_revealed: true)
       redirect_to game_player_path(@game, @player), notice: "Биология вскрыта!"
@@ -31,12 +26,7 @@ class PlayersController < ApplicationController
   end
 
   def eliminate
-    @game = Game.find(params[:game_id])
-    @player = @game.players.find(params[:id])
-
-    # Помечаем как изгнанного
     @player.update!(eliminated: true)
-
     redirect_to game_path(@game), notice: "Игрок #{@player.id} изгнан из бункера!"
   end
 
