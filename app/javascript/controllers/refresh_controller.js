@@ -1,5 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-import * as Turbo from "@hotwired/turbo-rails"
+import { Turbo } from "@hotwired/turbo-rails"
 
 // Polling-контроллер: переоткрывает страницу через Turbo каждые N секунд.
 // Turbo 8 Morphing обновит только изменившиеся элементы, скролл сохранится.
