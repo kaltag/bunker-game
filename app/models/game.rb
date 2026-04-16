@@ -31,7 +31,8 @@ class Game < ApplicationRecord
   end
 
   def raid_candidates
-    active_players.order("RANDOM()").limit(3)
+    return Player.none if raid_candidate_ids.blank?
+    active_players.where(id: raid_candidate_ids)
   end
 
   # Завершает активный рейд: разрешает исходы для всех рейдеров
@@ -43,7 +44,7 @@ class Game < ApplicationRecord
       RaidResolver.call(player, raid)
     end
 
-    update!(active_raid_id: nil, raid_params_revealed: false)
+    update!(active_raid_id: nil, raid_params_revealed: false, raid_candidate_ids: [])
   end
 
   # Переход к следующему раунду с разрешением рейда

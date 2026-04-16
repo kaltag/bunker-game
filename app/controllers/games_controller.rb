@@ -18,7 +18,7 @@ class GamesController < ApplicationController
   end
 
   def show
-    @players = @game.players.includes(player_cards: :card)
+    @players = @game.players.includes(player_cards: :card).order(:id)
   end
 
   def report
@@ -32,7 +32,7 @@ class GamesController < ApplicationController
 
       @game.players.update_all(raid_outcome: nil)
       @game.players.where(id: params[:raider_ids]).update_all(raid_status: "raiding")
-      @game.update!(active_raid_id: raid.id)
+      @game.update!(active_raid_id: raid.id, raid_candidate_ids: [])
 
       # update_all не запускает колбэки — ручной broadcast обязателен
       Turbo::StreamsChannel.broadcast_refresh_to(@game)
@@ -54,7 +54,8 @@ class GamesController < ApplicationController
   end
 
   def reveal_raid_system
-    @game.update(raid_params_revealed: true)
+    candidate_ids = @game.active_players.order("RANDOM()").limit(3).pluck(:id)
+    @game.update(raid_params_revealed: true, raid_candidate_ids: candidate_ids)
     redirect_to game_path(@game), notice: "Система рейдов активирована!"
   end
 
