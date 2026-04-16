@@ -1,6 +1,7 @@
 <%= turbo_stream_from @game %>
 
-<div id="<%= dom_id(@game, :show) %>" class="min-h-screen bg-gray-900 text-white p-4 md:p-6 lg:p-8 font-sans">
+<div id="<%= dom_id(@game, :show) %>" class="min-h-screen bg-gray-900 text-white p-4 md:p-6 lg:p-8 font-sans"
+     data-controller="refresh" data-refresh-interval-value="5">
   <div class="max-w-[1400px] mx-auto">
 
     <%= render "games/game_info", game: @game %>

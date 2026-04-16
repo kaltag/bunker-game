@@ -1,5 +1,5 @@
 <%= turbo_stream_from @game %>
 
-<div>
+<div data-controller="refresh" data-refresh-interval-value="5">
   <%= render "players/player_screen", player: @player, game: @game %>
 </div>
